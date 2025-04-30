@@ -1,3 +1,9 @@
+
+
+
+Install tool:  uv tool install --from dist/sbayt_cli-0.0.1-py3-none-any.whl sbayt-cli
+
+
 # Sbayt - Python Package Template
 
 Template de proyecto para paquetes de Python.
