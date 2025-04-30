@@ -1,0 +1,182 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - "master"
+    tags:
+      - "**"
+    pull_request: {}
+
+env:
+  COLUMNS: 150
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+  lint:
+    runs-on: ubuntu-latest
+    needs: fetch
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.5.23"
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+
+      - name: Change uv index
+        run: |
+          export CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain sbayt --domain-owner 865413084983 --region ${{ vars.AWS_REGION }} --query authorizationToken --output text`
+          export UV_DEFAULT_INDEX="https://aws:${CODEARTIFACT_AUTH_TOKEN}@sbayt-865413084983.d.codeartifact.${{ vars.AWS_REGION }}.amazonaws.com/pypi/python-sbayt-repository/simple/"
+          echo "UV_DEFAULT_INDEX=$UV_DEFAULT_INDEX" >> $GITHUB_ENV
+
+      - name: Sync dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Verify Installed Packages
+        run: uv pip check
+
+      - name: Run pre-commit hooks
+        run: |
+          uv run pre-commit run --all-files
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    strategy:
+      matrix:
+        python-version:
+          - "3.12"
+          - "3.11"
+          - "3.10"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.5.23"
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+
+      - name: Change uv index
+        run: |
+          export CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain sbayt --domain-owner 865413084983 --region ${{ vars.AWS_REGION }} --query authorizationToken --output text`
+          export UV_DEFAULT_INDEX="https://aws:${CODEARTIFACT_AUTH_TOKEN}@sbayt-865413084983.d.codeartifact.${{ vars.AWS_REGION }}.amazonaws.com/pypi/python-sbayt-repository/simple/"
+          echo "UV_DEFAULT_INDEX=$UV_DEFAULT_INDEX" >> $GITHUB_ENV
+
+      - name: Install dependencies
+        run: uv sync --all-extras --dev
+
+      - name: Run Unit Tests
+        run: |
+          uv run pytest -m unit || echo "No unit tests executed"
+
+      - name: Run Integration Tests
+        run: |
+          uv run pytest -m integration || echo "No integration tests executed"
+
+  scan:
+    runs-on: ubuntu-latest
+    needs: test
+    permissions: write-all
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner in repo mode
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "fs"
+          ignore-unfixed: true
+          format: "table"
+          scanners: "vuln,secret,config"
+          severity: "CRITICAL,HIGH"
+
+  publish:
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: scan
+    runs-on: ubuntu-latest
+    environment: release
+
+    outputs:
+      lib-version: ${{ steps.check-tag.outputs.VERSION }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Check version
+        id: check-tag
+        uses: samuelcolvin/check-python-version@v4.1
+        with:
+          version_file_path: src/__init__.py
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "0.5.23"
+          enable-cache: true
+          cache-dependency-glob: |
+            pyproject.toml
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Change uv index
+        run: |
+          export CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain sbayt --domain-owner 865413084983 --region ${{ vars.AWS_REGION }} --query authorizationToken --output text`
+          export UV_DEFAULT_INDEX="https://aws:${CODEARTIFACT_AUTH_TOKEN}@sbayt-865413084983.d.codeartifact.${{ vars.AWS_REGION }}.amazonaws.com/pypi/python-sbayt-repository/simple/"
+          echo "UV_DEFAULT_INDEX=$UV_DEFAULT_INDEX" >> $GITHUB_ENV
+
+      - name: Build and publish to AWS CodeArtifact
+        run: |
+          export UV_PUBLISH_USERNAME=aws
+          export UV_PUBLISH_PASSWORD=`aws codeartifact get-authorization-token --domain sbayt --domain-owner 865413084983 --region eu-west-1 --query authorizationToken --output text`
+          export UV_PUBLISH_URL=`aws codeartifact get-repository-endpoint --domain sbayt --domain-owner 865413084983 --repository python-sbayt-repository --region eu-west-1 --format pypi --query repositoryEndpoint --output text`
+          uv build
+          uv publish

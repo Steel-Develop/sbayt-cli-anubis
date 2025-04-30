@@ -1,0 +1,106 @@
+[build-system]
+# Especifica el backend de construcción
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"
+
+[project]
+# Información del proyecto
+name = "sbayt-python-template"
+authors = [{ name = "Sbayt", email = "sbayt@gmail.com" }]
+description = "Python package template for Sbayt projects"
+readme = "README.md"
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "License :: All Rights Reserved",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+requires-python = ">=3.9" # Versión de Python requerida
+dynamic = ["version"] # Versión dinámica, se extrae del archivo __init__.py
+dependencies = ["numpy>=1.26.3", "pandas==2.2.3"] # Dependencias del proyecto
+
+[project.optional-dependencies] # Dependencias opcionales
+all = ["matplotlib"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest<9.0.0,>=8.2.2",
+    "pytest-cov<=6.0.0,>=5.0.0",
+    "mypy<2.0.0,>=1.8.0",
+    "pre-commit<4.0.0,>=3.7.1",
+    "flake8<8.0.0,>=7.1.0",
+    "Flake8-pyproject<2.0.0,>=1.2.3",
+    "isort<6.0.0,>=5.13.2",
+    "black<25.0.0,>=24.10.0",
+] # Dependencias de desarrollo
+
+[project.urls]
+# URLs del proyecto
+Documentation = "https://github.com/Steel-Develop/sbayt-pyp-template/tree/master#readme"
+Homepage = "https://github.com/Steel-Develop/sbayt-pyp-template"
+Issues = "https://steeldevelop.atlassian.net"
+
+[tool.pdm]
+# Configuración de PDM
+version = { source = "file", path = "src/__init__.py" }
+distribution = true
+
+[tool.mypy]
+explicit_package_bases = true
+
+[tool.bandit]
+exclude_dirs = ["build", "dist", "tests", "scripts"]
+number = 4
+recursive = true
+targets = "src"
+
+[tool.black]
+line-length = 88
+fast = true
+
+[tool.coverage.run]
+parallel = true
+data_file = ".coverage"
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+sort = "-Cover"
+fail_under = 50
+
+[tool.coverage.html]
+show_contexts = true
+
+[tool.flake8]
+max-line-length = 88
+max-complexity = 18
+select = "B,C,E,F,W,T4,B9"
+exclude = [
+    ".eggs",
+    ".git",
+    ".tox",
+    "nssm",
+    "obj",
+    "out",
+    "packages",
+    "pywin32",
+    "swagger_client",
+]
+ignore = ["E203", "E266", "E501", "W503", "F403", "F401"]
+
+[tool.isort]
+profile = "black"
+known_first_party = "src"
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+
+[tool.pytest.ini_options]
+addopts = "--cov src"
+pythonpath = ["src"]
+testpaths = "tests"
+junit_family = "xunit2"
+markers = ["integration: marks as integration test", "unit: marks as unit test"]
