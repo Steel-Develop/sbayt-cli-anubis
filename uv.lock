@@ -576,7 +576,7 @@ wheels = [
 ]
 
 [[package]]
-name = "seshat-cli"
+name = "serket-cli"
 version = "0.0.1"
 source = { editable = "." }
 dependencies = [

@@ -5,7 +5,7 @@ from pathlib import Path
 from invoke import Collection, Exit, task
 from rich.prompt import Confirm, Prompt
 
-from seshat.utils import (
+from serket.utils import (
     DEFAULT_DEPLOYMENT_FILE,
     LOAD_SECRETS_FROM_BWS_NAME,
     UV_CONFIG_FILE,

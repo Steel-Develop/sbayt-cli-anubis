@@ -1,5 +1,5 @@
 """
-Seshat CLI - Secure Environment Setup & Host Automation Toolkit
+Serket CLI - Secure Environment Setup & Host Automation Toolkit
 ---------------------------------------------------------------
 
 This script defines and organizes a set of automated tasks for configuring and
@@ -41,12 +41,8 @@ from pathlib import Path
 from typing import Callable, Optional, Tuple
 
 import yaml
-from invoke import Collection, task
 from invoke.exceptions import Exit
-from rich.align import Align
 from rich.console import Console
-from rich.panel import Panel
-from rich.table import Table
 
 # =============================================================================
 # Global configuration and constants
@@ -60,7 +56,7 @@ logging.basicConfig(
 console = Console()
 
 # Global variables
-VERSION = importlib.metadata.version("seshat-cli")
+VERSION = importlib.metadata.version("serket-cli")
 DEFAULT_ENV = "dev"
 DEFAULT_DEPLOYMENT_FILE = "deployment.yml"
 LOCAL_BIN_PATH = Path.home() / ".local/bin"
@@ -98,9 +94,6 @@ AWS_ECR_REGISTRY_TEMPLATE = "{account_id}.dkr.ecr.{region}.amazonaws.com"
 
 # uv
 UV_CONFIG_FILE = Path.home() / ".config" / "uv" / "uv.toml"
-
-# Create the main collection
-ns = Collection()
 
 # =============================================================================
 # Métodos auxiliares para Bitwarden
@@ -306,19 +299,19 @@ def _install_aws_cli():
         return
     logging.info("Installing AWS CLI locally...")
 
-    # Paso 1) Crear directorio temporal
+    # Step 1) Create temporary directory
     TMP_DIR = Path.home() / "aws_temp"
     TMP_DIR.mkdir(parents=True, exist_ok=True)
 
     try:
-        # Descargar en TMP_DIR
+        # Download to TMP_DIR
         zip_path = TMP_DIR / "awscliv2.zip"
         subprocess.run(["curl", "-Lo", str(zip_path), AWS_CLI_DOWNLOAD_URL], check=True)
 
-        # Descomprimir en TMP_DIR
+        # Unzip to TMP_DIR
         subprocess.run(["unzip", "-d", str(TMP_DIR), str(zip_path)], check=True)
 
-        # Paso 2) Ejecutar el instalador
+        # Step 2) Run the installer
         install_script = TMP_DIR / "aws" / "install"
         subprocess.run(
             [
@@ -331,7 +324,7 @@ def _install_aws_cli():
             check=True,
         )
 
-        # Agregar ~/.local/bin al PATH
+        # Add ~/.local/bin to PATH
         os.environ["PATH"] = f"{LOCAL_BIN_PATH}:{os.environ.get('PATH', '')}"
         logging.info("✅ AWS CLI installed locally in ~/.local/aws-cli")
 
@@ -339,7 +332,7 @@ def _install_aws_cli():
         logging.error(f"❌ Failed to install AWS CLI: {e}")
         raise
     finally:
-        # Paso 3) Limpiar
+        # Step 3) Clean up
         try:
             if TMP_DIR.exists():
                 shutil.rmtree(TMP_DIR)
@@ -662,6 +655,9 @@ def _load_deployment_config(path=DEFAULT_DEPLOYMENT_FILE):
     """
     Loads the deployment configuration from a YAML file.
 
+    First tries to load from the specified path. If not found, tries to load
+    from a global configuration file in the user's home directory.
+
     Args:
         path (str): Path to the deployment configuration file.
 
@@ -669,23 +665,42 @@ def _load_deployment_config(path=DEFAULT_DEPLOYMENT_FILE):
         dict: Dictionary containing the deployment configuration.
 
     Raises:
-        FileNotFoundError: If the deployment file does not exist.
+        Exit: If neither the local nor global deployment file exists.
         yaml.YAMLError: If the file exists but contains invalid YAML.
 
     Example:
         >>> _load_deployment_config()
         {'profiles': ['infra'], 'aws_account_id': '123...', ...}
     """
-    if not Path(path).exists():
-        logging.error(f"❌ Deployment configuration file '{path}' not found.")
-        raise Exit(code=1)
+    # Try specified path first
+    path_obj = Path(path)
+    if path_obj.exists():
+        logging.info(f"ℹ️ Using configuration file: {path_obj.absolute()}")
+        with open(path_obj, "r") as f:
+            try:
+                return yaml.safe_load(f) or {}
+            except yaml.YAMLError as e:
+                logging.error(f"❌ Failed to parse YAML file '{path}': {e}")
+                raise
 
-    with open(path, "r") as f:
-        try:
-            return yaml.safe_load(f) or {}
-        except yaml.YAMLError as e:
-            logging.error(f"❌ Failed to parse YAML file '{path}': {e}")
-            raise
+    # If not found, try global config
+    global_path = Path.home() / ".config" / "serket" / "deployment.yml"
+    if global_path.exists():
+        logging.info(f"ℹ️ Using global configuration file: {global_path}")
+        with open(global_path, "r") as f:
+            try:
+                return yaml.safe_load(f) or {}
+            except yaml.YAMLError as e:
+                logging.error(
+                    f"❌ Failed to parse global YAML file '{global_path}': {e}"
+                )
+                raise
+
+    # If neither exists, show error message
+    logging.error(
+        f"❌ Deployment configuration file '{path}' not found and no global configuration at '{global_path}'."
+    )
+    raise Exit(code=1)
 
 
 def _get_config_from_sources(
@@ -888,7 +903,7 @@ def _check_aws_configuration(bws_secrets: dict, deployment_file=None):
     aws_secret_key = bws_secrets.get(AWS_SECRET_VARIABLE_NAME)
     aws_session_token = bws_secrets.get(AWS_TOKEN_VARIABLE_NAME)
 
-    # 3) Retrieve region/account from deployment.yml (o defaults)
+    # 3) Retrieve region/account from deployment.yml (or defaults)
     aws_account_id = _get_aws_account_id(deployment_file)
     aws_region = _get_aws_region(deployment_file)
 
@@ -910,7 +925,7 @@ def _check_aws_configuration(bws_secrets: dict, deployment_file=None):
     if aws_cli_installed and all(
         [aws_access_key, aws_secret_key, aws_account_id, aws_region]
     ):
-        # Llamamos a la función real de login para no duplicar lógica
+        # Call the actual login function to avoid duplicating logic
         aws_login_success = _aws_ecr_login(bws_secrets)
         if aws_login_success:
             logging.info("✅ Docker successfully authenticated with AWS ECR")
@@ -1122,565 +1137,39 @@ def _find_tool(tool_name: str) -> Optional[str]:
     return None
 
 
-# =============================================================================
-# Definición de tareas con Invoke
-# =============================================================================
-
-
-# BWS Tasks
-
-
-@task
-def install_bws_cli(ctx):
+def _install_deployment_as_global(source_path=DEFAULT_DEPLOYMENT_FILE):
     """
-    Installs the Bitwarden CLI (bws) into the user's local bin directory.
+    Installs a deployment configuration file as the global configuration.
 
-    This task downloads the Bitwarden CLI binary, unzips it into ~/.local/bin,
-    and ensures the directory is added to the PATH environment variable.
-    Skips installation if the CLI is already installed.
+    Copies the specified deployment file to the global location (~/.config/serket/deployment.yml).
+    Creates the directory structure if it doesn't exist.
+
+    Args:
+        source_path (str): Path to the source deployment configuration file.
+
+    Returns:
+        bool: True if successful, False otherwise.
+
+    Raises:
+        Exit: If the source file doesn't exist.
     """
-    _install_bws_cli()
+    source = Path(source_path)
+    if not source.exists():
+        logging.error(f"❌ Source deployment file '{source_path}' not found.")
+        raise Exit(code=1)
 
+    # Create the global config directory if it doesn't exist
+    global_dir = Path.home() / ".config" / "serket"
+    global_dir.mkdir(parents=True, exist_ok=True)
 
-@task
-def remove_bws_cli(ctx):
-    """
-    Removes the Bitwarden CLI (bws) from the local environment.
+    # Define the destination path
+    global_path = global_dir / "deployment.yml"
 
-    This task deletes the bws binary from ~/.local/bin, if it exists.
-    """
-    _uninstall_bws_cli()
-
-
-bws_ns = Collection("bws")
-bws_ns.add_task(install_bws_cli, name="install-cli")
-bws_ns.add_task(remove_bws_cli, name="remove-cli")
-
-# Docker Tasks
-
-
-@task
-def create_network(ctx):
-    """
-    Creates the Docker network if it does not exist.
-
-    Network name is defined by the global constant DOCKER_NETWORK.
-
-    Usage:
-        invoke create-network
-    """
     try:
-        result = ctx.run(
-            f"docker network ls | grep {DOCKER_NETWORK}", warn=True, hide=True
-        )
-        if result.ok:
-            logging.info(f"The network '{DOCKER_NETWORK}' already exists.")
-        else:
-            logging.info(f"Creating Docker network '{DOCKER_NETWORK}'...")
-            ctx.run(f"docker network create {DOCKER_NETWORK}", pty=True)
+        # Copy the file
+        shutil.copy2(source, global_path)
+        logging.info(f"✅ Deployment file installed globally at: {global_path}")
+        return True
     except Exception as e:
-        logging.error(f"Error creating network: {str(e)}")
-
-
-@task
-def remove_network(ctx, yes=False):
-    """
-    Removes the Docker network if it exists.
-
-    Args:
-        ctx: Invoke context.
-        yes (bool): If True, skips the confirmation prompt.
-
-    Usage:
-        invoke remove-network
-        invoke remove-network --yes
-    """
-    if not _confirm_action(
-        "Are you sure you want to remove the Docker network?", yes=yes
-    ):
-        logging.info("Remove network operation aborted by user.")
-        return
-    try:
-        result = ctx.run(
-            f"docker network ls | grep {DOCKER_NETWORK}", warn=True, hide=True
-        )
-        if result.ok:
-            logging.info(f"Removing Docker network '{DOCKER_NETWORK}'...")
-            ctx.run(f"docker network rm {DOCKER_NETWORK}", pty=True)
-        else:
-            logging.info(f"The network '{DOCKER_NETWORK}' does not exist.")
-    except Exception as e:
-        logging.error(f"Error removing network: {str(e)}")
-
-
-@task
-def clean_environment(ctx, yes=False, env=DEFAULT_ENV):
-    """
-    Cleans the Docker environment by performing several optional actions:
-    - docker compose down
-    - remove Docker network
-    - prune system, volumes, and networks
-
-    Each step prompts for confirmation unless --yes is used.
-
-    Args:
-        ctx: Invoke context.
-        yes (bool): Auto-confirm all actions if True.
-        env (str): Environment name (default: 'dev').
-
-    Usage:
-        invoke clean-environment
-        invoke clean-environment --yes
-    """
-    if _confirm_action(
-        "Do you want to stop and remove all services (docker compose down)?", yes=yes
-    ):
-        down(ctx, yes=yes, env=env)
-    if _confirm_action("Do you want to remove the Docker network?", yes=yes):
-        remove_network(ctx, yes=yes)
-    if _confirm_action(
-        "Do you want to remove unused Docker data (docker system prune)?", yes=yes
-    ):
-        ctx.run("docker system prune -f", pty=True)
-    if _confirm_action(
-        "Do you want to remove unused Docker volumes (docker volume prune)?", yes=yes
-    ):
-        ctx.run("docker volume prune -f", pty=True)
-    if _confirm_action(
-        "Do you want to remove unused Docker networks (docker network prune)?", yes=yes
-    ):
-        ctx.run("docker network prune -f", pty=True)
-
-
-@task(create_network)
-def up(
-    ctx,
-    profiles=None,
-    env=DEFAULT_ENV,
-    load_secrets_from_bws=None,
-    skip_ecr_login=False,
-    deployment_file=None,
-):
-    """
-    Starts Docker Compose services in interactive (foreground) mode.
-
-    Loads secrets from Bitwarden, authenticates with AWS ECR if needed, and runs
-    `docker compose up` with the specified profiles and environment.
-
-    Args:
-        ctx: Invoke context.
-        profiles (str, optional): Comma-separated list of profiles to activate.
-        env (str): Target environment name (default: "dev").
-        load_secrets_from_bws (bool, optional): Whether to load Bitwarden secrets.
-        skip_ecr_login (bool): If True, skip ECR login.
-        deployment_file (str, optional): Path to deployment config file.
-
-    Usage:
-        invoke docker.up
-        invoke docker.up --profiles=infra,api
-        invoke docker.up --env=prod
-    """
-    _launch_services(
-        ctx,
-        profiles,
-        detach=False,
-        env=env,
-        load_secrets_from_bws=load_secrets_from_bws,
-        skip_ecr_login=skip_ecr_login,
-        deployment_file=deployment_file,
-    )
-
-
-@task(create_network)
-def up_daemon(
-    ctx,
-    profiles=None,
-    env=DEFAULT_ENV,
-    load_secrets_from_bws=None,
-    skip_ecr_login=False,
-    deployment_file=None,
-):
-    """
-    Starts services using Docker Compose in detached (background) mode.
-
-    Args:
-        ctx: Invoke context.
-        profiles (str, optional): Comma-separated profiles to activate.
-        env (str): Target environment name.
-        deployment_file (str, optional): Path to a deployment config file.
-
-    Example:
-        invoke up-daemon
-        invoke up-daemon --profiles=infra
-    """
-    _launch_services(
-        ctx,
-        profiles,
-        detach=True,
-        env=env,
-        load_secrets_from_bws=load_secrets_from_bws,
-        skip_ecr_login=skip_ecr_login,
-        deployment_file=deployment_file,
-    )
-
-
-@task
-def down(ctx, profiles=None, yes=False, env=DEFAULT_ENV, deployment_file=None):
-    """
-    Stops and removes Docker Compose services.
-
-    Optionally also removes volumes and orphan containers based on user confirmation.
-
-    Args:
-        ctx: Invoke context.
-        profiles (str, optional): Comma-separated profiles to target.
-        yes (bool): If True, skips confirmation prompts.
-        env (str): Target environment name.
-        deployment_file (str, optional): Path to deployment config file.
-
-    Example:
-        invoke down
-        invoke down --profiles=api,infra --yes
-    """
-    if not _confirm_action("Are you sure you want to stop all containers?", yes=yes):
-        logging.info("Operation aborted by user.")
-        return
-    remove_volumes = _confirm_action("Do you also want to remove volumes?", yes=yes)
-    remove_orphans = _confirm_action(
-        "Do you want to remove orphan containers?", yes=yes
-    )
-    options = ""
-    if remove_volumes:
-        options += " --volumes"
-    if remove_orphans:
-        options += " --remove-orphans"
-    env_file = _get_env_file(env)
-    ctx.run(
-        f"{DOCKER_COMPOSE_CMD} --env-file {env_file} {_get_profiles_args(profiles, deployment_file)} down{options}",
-        env={**os.environ, "ENV": env},
-        pty=True,
-    )
-
-
-@task
-def restart(
-    ctx,
-    profiles=None,
-    yes=False,
-    env=DEFAULT_ENV,
-    load_secrets_from_bws=None,
-    skip_ecr_login=False,
-    deployment_file=None,
-):
-    """
-    Restarts services by stopping them (`down`) and then starting them again (`up`).
-
-    Args:
-        ctx: Invoke context.
-        profiles (str, optional): Comma-separated profiles.
-        yes (bool): If True, skip confirmation prompts.
-        env (str): Environment name.
-        load_secrets_from_bws (bool, optional): Whether to load Bitwarden secrets.
-        skip_ecr_login (bool, optional): If True, skip ECR login.
-        deployment_file (str, optional): Path to deployment config.
-
-    Example:
-        invoke restart
-        invoke restart --profiles=infra --env=prod --yes
-    """
-    logging.info("🔄 Restarting services...")
-
-    down(
-        ctx,
-        profiles=profiles,
-        yes=yes,
-        env=env,
-        load_secrets_from_bws=load_secrets_from_bws,
-        skip_ecr_login=skip_ecr_login,
-        deployment_file=deployment_file,
-    )
-    up(
-        ctx,
-        profiles=profiles,
-        env=env,
-        load_secrets_from_bws=load_secrets_from_bws,
-        skip_ecr_login=skip_ecr_login,
-        deployment_file=deployment_file,
-    )
-
-
-@task
-def ps(ctx, profiles=None, env=DEFAULT_ENV, deployment_file=None):
-    """
-    Displays the status of running containers defined in Docker Compose.
-
-    Args:
-        ctx: Invoke context.
-        profiles (str, optional): Comma-separated profiles to filter.
-        env (str): Target environment name.
-        deployment_file (str, optional): Path to deployment config file.
-
-    Example:
-        invoke ps
-        invoke ps --profiles=infra
-    """
-    env_file = _get_env_file(env)
-    ctx.run(
-        f"{DOCKER_COMPOSE_CMD} --env-file {env_file} {_get_profiles_args(profiles, deployment_file)} ps",
-        pty=True,
-    )
-
-
-@task
-def logs(ctx, service=None, follow=True, tail=250, env=DEFAULT_ENV):
-    """
-    Displays logs from Docker Compose services.
-
-    Args:
-        ctx: Invoke context.
-        service (str, optional): Specific service name to filter logs.
-        follow (bool): Whether to follow the logs live (default: True).
-        tail (int): Number of lines to show from the end of the log (default: 250).
-        env (str): Target environment name.
-
-    Example:
-        invoke logs
-        invoke logs --service=api
-        invoke logs --follow=False --tail=100
-    """
-    flags = f"--tail={tail}"
-    if follow:
-        flags += " -f"
-    cmd = f"{DOCKER_COMPOSE_CMD} --env-file {_get_env_file(env)} logs {flags}"
-    if service:
-        cmd += f" {service}"
-
-    # Build ephemeral environment by loading .env file plus OS environment
-    env_vars = os.environ.copy()
-    env_vars["ENV"] = env
-    env_file_path = _get_env_file(env)
-    if Path(env_file_path).exists():
-        with open(env_file_path) as f:
-            for line in f:
-                if line.strip() and not line.strip().startswith("#") and "=" in line:
-                    key, val = line.strip().split("=", 1)
-                    env_vars[key] = val
-
-    ctx.run(cmd, env=env_vars, pty=True)
-
-
-@task
-def build(ctx, profiles=None, env=DEFAULT_ENV, deployment_file=None):
-    """
-    Builds Docker images for the given Compose profiles.
-
-    Args:
-        ctx: Invoke context.
-        profiles (str, optional): Comma-separated profiles to build.
-        env (str): Target environment name.
-        deployment_file (str, optional): Path to deployment config file.
-
-    Example:
-        invoke build
-        invoke build --profiles=api
-    """
-    env_file = _get_env_file(env)
-    ctx.run(
-        f"{DOCKER_COMPOSE_CMD} --env-file {env_file} {_get_profiles_args(profiles, deployment_file)} build",
-        pty=True,
-    )
-
-
-docker_ns = Collection("docker")
-docker_ns.add_task(create_network)
-docker_ns.add_task(remove_network)
-docker_ns.add_task(clean_environment)
-docker_ns.add_task(up)
-docker_ns.add_task(up_daemon)
-docker_ns.add_task(down)
-docker_ns.add_task(restart)
-docker_ns.add_task(ps)
-docker_ns.add_task(logs)
-docker_ns.add_task(build)
-
-# Check Tasks
-
-
-@task
-def check_security(ctx, env=DEFAULT_ENV):
-    """
-    Task to run a complete security configuration check for the specified environment.
-
-    This includes:
-    - Validating the Bitwarden CLI (`bws`) installation
-    - Verifying token and secrets access from Bitwarden
-    - Checking AWS CLI and Docker ECR authentication
-
-    Args:
-        ctx: Invoke context (automatically passed).
-        env (str): Environment name (default: 'dev').
-
-    Usage:
-        invoke check-security
-        invoke check-security --env=prod
-    """
-    _check_security_configuration()
-
-
-@task
-def check_environment(ctx):
-    """
-    Validates that the local environment is correctly set up.
-
-    This command verifies:
-    - That ~/.local/bin exists and is in the $PATH environment variable.
-    - That required CLI tools (aws, bws, pip, uv) are installed.
-    - That no global conflicts are detected.
-
-    Usage:
-        invoke check.environment
-
-    Example:
-        invoke check.environment
-    """
-    logging.info("🧪 Validating local environment configuration...")
-
-    _check_local_bin_exists()
-    _check_local_bin_in_path()
-    _check_docker_environment()
-    _check_unzip()
-    _check_curl()
-    _check_aws()
-    _check_bws()
-    _check_pip()
-    _check_uv()
-
-
-check_ns = Collection("check")
-check_ns.add_task(check_security, name="security")
-check_ns.add_task(check_environment, name="environment")
-
-
-# Global Tasks
-
-
-@task
-def help(ctx):
-    """
-    Shows a custom help menu with tasks grouped by category.
-
-    This command groups available tasks into sections such as AWS, Docker,
-    Bitwarden, and Check, providing a short description for each one.
-
-    Usage:
-        invoke help
-
-    Example:
-        invoke help
-    """
-    # Cabecera
-    header = Panel.fit(
-        Align.center(
-            "[bold blue]🧿 seshat cli[/bold blue]\n"
-            "[dim]Secure Environment Setup & Host Automation Toolkit[/dim]\n\n"
-            "[green]💡 Run tasks with:[/green] [bold]invoke <task>[/bold]  e.g. [bold]invoke docker.up[/bold]",
-            vertical="middle",
-        ),
-        border_style="bright_blue",
-        padding=(1, 4),
-        width=80,
-    )
-    console.print(header)
-
-    def _print_section(title: str, commands: list[tuple[str, str]]):
-        console.print(f"\n[bold yellow]{title}[/bold yellow]\n")
-
-        table = Table(
-            show_header=True, header_style="bold magenta", box=None, pad_edge=False
-        )
-        table.add_column(" Task", style="green", min_width=36, no_wrap=True)
-        table.add_column("Description", style="white", min_width=40, justify="left")
-
-        for cmd, desc in commands:
-            table.add_row(cmd, desc)
-        console.print(table)
-
-    _print_section(
-        "📦 AWS Tasks",
-        [
-            (" aws.install-cli", "Install AWS CLI locally"),
-            (" aws.remove-cli", "Remove AWS CLI"),
-            (" aws.configure-pip", "Configure pip with CodeArtifact"),
-            (" aws.configure-uv", "Configure uv with CodeArtifact"),
-            (" aws.reset-pypi", "Reset pip/uv to public PyPI"),
-            (" aws.create-ca-env-file", "Create .env.codeartifact file with token"),
-            (
-                " aws.export-ca-token-env-var",
-                "⚠️  Export token (must run with 'source')",
-            ),
-        ],
-    )
-
-    _print_section(
-        "🔐 Bitwarden Tasks",
-        [
-            (" bws.install-cli", "Install Bitwarden CLI"),
-            (" bws.remove-cli", "Remove Bitwarden CLI"),
-        ],
-    )
-
-    _print_section(
-        "🐳 Docker Tasks",
-        [
-            (" docker.up", "Start services (foreground)"),
-            (" docker.up-daemon", "Start services (detached)"),
-            (" docker.down", "Stop and remove services"),
-            (" docker.build", "Build images"),
-            (" docker.ps", "Show container status"),
-            (" docker.logs", "Show logs"),
-            (" docker.clean-environment", "Clean Docker environment"),
-            (" docker.create-network", "Create Docker network"),
-            (" docker.remove-network", "Remove Docker network"),
-            (" docker.restart", "Restart services"),
-        ],
-    )
-
-    _print_section(
-        "🧪 Check Tasks",
-        [
-            (" check.environment", "Check system prerequisites"),
-            (" check.security", "Check security configuration"),
-        ],
-    )
-
-    _print_section(
-        "🔧 Miscellaneous",
-        [
-            (" version", "Show current CLI version"),
-            (" help", "Show this help menu"),
-        ],
-    )
-
-    console.print(
-        "\n[dim]💡 Tip: Use [bold]invoke -l[/bold] to list all available tasks[/dim]\n"
-    )
-
-
-@task
-def version(ctx):
-    """
-    Prints the current version of the CLI tool.
-
-    Usage:
-        invoke version
-
-    Example:
-        invoke version
-    """
-    print(f"{VERSION}")
-
-
-# ns.add_collection(aws_ns)
-# ns.add_collection(bws_ns)
-# ns.add_collection(docker_ns)
-# ns.add_collection(check_ns)
+        logging.error(f"❌ Failed to install global deployment file: {e}")
+        return False
