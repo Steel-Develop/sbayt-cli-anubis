@@ -166,14 +166,6 @@ jobs:
         with:
           version_file_path: "pyproject.toml"
 
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "0.5.23"
-          enable-cache: true
-          cache-dependency-glob: |
-            pyproject.toml
-
       - name: Build and publish to PyPI
         run: |
           uv build --no-sources
