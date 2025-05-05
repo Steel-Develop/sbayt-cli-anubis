@@ -1,15 +1,17 @@
-from invoke import task
-from rich.panel import Panel
-from rich.align import Align
-from rich.table import Table
-from serket.utils import (
-    VERSION,
-    console,
-    _install_deployment_as_global,
-    DEFAULT_DEPLOYMENT_FILE,
-)
-from pathlib import Path
 import logging
+from pathlib import Path
+
+from invoke import task
+from rich.align import Align
+from rich.panel import Panel
+from rich.table import Table
+
+from anubis.utils import (
+    DEFAULT_DEPLOYMENT_FILE,
+    VERSION,
+    _install_deployment_as_global,
+    console,
+)
 
 
 @task
@@ -29,9 +31,9 @@ def help(ctx):
     # Cabecera
     header = Panel.fit(
         Align.center(
-            "[bold blue]🧿 serket cli[/bold blue]\n"
-            "[dim]Secure Environment Resource Keeper & Execution Toolkit[/dim]\n\n"
-            "[green]💡 Run tasks with:[/green] [bold]invoke <task>[/bold]  e.g. [bold]invoke docker.up[/bold]",
+            "[bold blue]𓁢 anubis cli[/bold blue]\n"
+            "[dim]Automated Network & User Base Installation Service[/dim]\n\n"
+            "[green]💡 Run tasks with:[/green] [bold]anubis <task>[/bold]  e.g. [bold]anubis docker.up[/bold]",
             vertical="middle",
         ),
         border_style="bright_blue",
@@ -114,7 +116,7 @@ def help(ctx):
     )
 
     console.print(
-        "\n[dim]💡 Tip: Use [bold]serket -l[/bold] to list all available tasks[/dim]\n"
+        "\n[dim]💡 Tip: Use [bold]anubis -l[/bold] to list all available tasks[/dim]\n"
     )
 
 
@@ -141,7 +143,7 @@ def install_global_config(ctx, path=DEFAULT_DEPLOYMENT_FILE):
     """
     Installs a deployment configuration file as the global configuration.
 
-    Copies the specified deployment file to ~/.config/serket/deployment.yml
+    Copies the specified deployment file to ~/.config/anubis/deployment.yml
     so it can be used as a fallback when no local deployment file exists.
 
     Usage:
@@ -161,7 +163,7 @@ def install_global_config(ctx, path=DEFAULT_DEPLOYMENT_FILE):
         )
         logging.info("ℹ️ or specify a valid path with --path parameter.")
         logging.info(
-            "ℹ️ Example: serket install-global-config --path=./my-custom-deployment.yml"
+            "ℹ️ Example: anubis install-global-config --path=./my-custom-deployment.yml"
         )
         return
 

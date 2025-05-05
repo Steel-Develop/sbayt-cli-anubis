@@ -5,10 +5,10 @@ build-backend = "pdm.backend"
 
 [project]
 # Project information
-name = "serket-cli"
+name = "anubis-cli"
 version = "0.0.1"
 authors = [{ name = "Sbayt", email = "info@sbayt.ai" }]
-description = "Sbayt Serket CLI"
+description = "Sbayt Anubis CLI"
 readme = "README.md"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -21,7 +21,7 @@ classifiers = [
 requires-python = ">=3.9"
 
 packages = [
-    { include = "serket" }
+    { include = "anubis" }
 ]
 
 # Dependencies
@@ -62,19 +62,19 @@ dev-dependencies = [
 ]
 
 [project.scripts]
-serket = "serket.main:program.run"
+anubis = "anubis.main:program.run"
 
 [project.urls]
 # URLs del proyecto
-Documentation = "https://github.com/Steel-Develop/cfa-spark-app-add-metadata/tree/master#readme"
-Homepage = "https://github.com/Steel-Develop/cfa-spark-app-add-metadata"
-Issues = "https://github.com/Steel-Develop/cfa-spark-app-add-metadata/issues"
+Documentation = "https://github.com/Steel-Develop/sbayt-cli-anubis/tree/master#readme"
+Homepage = "https://github.com/Steel-Develop/sbayt-cli-anubis"
+Issues = "https://github.com/Steel-Develop/sbayt-cli-anubis/issues"
 
 # Tools
 # =============================================================================
 [tool.pdm]
 packages = [
-    { include = "serket", from = "." }
+    { include = "anubis", from = "." }
 ]
 distribution = true
 
@@ -85,7 +85,7 @@ explicit_package_bases = true
 exclude_dirs = ["build", "dist", "tests", "scripts"]
 number = 4
 recursive = true
-targets = "serket"
+targets = "anubis"
 
 [tool.black]
 line-length = 88
@@ -123,14 +123,14 @@ ignore = ["E203", "E266", "E501", "W503", "F403", "F401"]
 
 [tool.isort]
 profile = "black"
-known_first_party = "serket"
+known_first_party = "anubis"
 multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0
 
 [tool.pytest.ini_options]
-addopts = "--cov serket"
-pythonpath = ["serket"]
+addopts = "--cov anubis"
+pythonpath = ["anubis"]
 testpaths = "tests"
 junit_family = "xunit2"
 markers = ["integration: marks as integration test", "unit: marks as unit test"]

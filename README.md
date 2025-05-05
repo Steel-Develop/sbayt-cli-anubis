@@ -1,31 +1,36 @@
+# Anubis CLI - Kit de Herramientas para Configuración Segura de Entornos y Automatización de Hosts
 
+## Descripción
 
+Este script define y organiza un conjunto de tareas automatizadas para configurar y
+gestionar entornos de desarrollo/producción. Utiliza `invoke` para estructurar las tareas
+y `rich` para mejorar la experiencia en terminal.
 
-Install tool:  uv tool install --from dist/sbayt_cli-0.0.1-py3-none-any.whl sbayt-cli
+Características principales:
 
+- Instalación local y gestión de herramientas CLI esenciales (AWS CLI, Bitwarden CLI).
+- Configuración de repositorios privados (CodeArtifact) para pip y uv.
+- Automatización de servicios Docker (crear red, iniciar, detener, limpiar, construir).
+- Verificación de configuraciones de seguridad y entorno local (Bitwarden, AWS ECR, etc.).
 
-# Sbayt - Python Package Template
+Requisitos:
 
-Template de proyecto para paquetes de Python.
+- Python 3.9 o superior.
+- [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) para instalar herramientas globalmente.
+- Un archivo de despliegue (local o global, por defecto: deployment.yml) para definir perfiles y credenciales.
 
-## Estructura del Proyecto
+Uso básico:
+    1. Ver tareas disponibles:
+        anubis help
+    2. Verificar tu entorno local:
+        anubis check.environment
+    3. Iniciar servicios Docker con perfiles específicos:
+        anubis docker.up --profiles=infra,api --env=prod
+    4. Configurar pip para CodeArtifact:
+        anubis aws.configure-pip
 
-```bash
-sbayt-pyp-template
-├── code_of_conduct.md
-├── CONTRIBUTING.md
-├── LICENSE
-├── README.md
-├── pyproject.toml
-├── src
-│   ├── README.md
-│   ├── __init__.py
-│   └── hello_world.py
-├── tests
-│   ├── conftest.py
-│   └── test_hello_world.py
-└── uv.lock
-```
+Para más detalles o ejemplos adicionales, consulta la documentación de cada tarea
+usando el comando `anubis --list` o revisa los docstrings individuales.
 
 ## Configuración del Entorno de Desarrollo
 
@@ -34,7 +39,7 @@ A continuación se indica cómo preparar el entorno de desarrollo.
 ### Requisitos
 
 - [Python](https://www.python.org/downloads/) >= 3.9
-- [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) >= 0.4.30
+- [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) >= 0.7.0
 
 ### Configuración
 
@@ -58,7 +63,7 @@ A continuación se indica cómo preparar el entorno de desarrollo.
    - (**Recomendado**) Utilizar el comando `un run <comando>` para ejecutar comandos dentro del entorno virtual:
 
      ```bash
-     uv run python src/hello_world.py
+     uv run anubis
      uv run pytest -m unit
      ```
 
@@ -114,83 +119,17 @@ Para crear un nuevo paquete en desarrollo, sigue los siguientes pasos:
    Mueve la carpeta `dist` al directorio raíz del proyecto y ejecuta el siguiente comando:
 
    ```bash
-   uv pip install dist/sbayt_pyp_template-<version>-py3-none-any.whl
-   ```
+   uv tool install --from dist/anubis_cli-0.0.1-py3-none-any.whl anubis-cli
 
-   o simplemente (sin uv):
-
-   ```bash
-    pip install dist/sbayt_pyp_template-<version>-py3-none-any.whl
    ```
 
 ## Despliegue del Paquete
 
-Al ejecutar el _workflow_ [CI.yml](.github/workflows/CI.yml), se desplegará el paquete en el **CodeArtifact** de AWS.
-
-> **Nota:** Se debe tener en cuenta que los comandos que cambian el índice de _pip_ hacen que la herramienta pase a utilizar ese índice, por lo que es necesario volver a configurar el índice de _pip_ si se desea instalar paquetes de otros repositorios.
-> <br>**Se recomienda desplegar el paquete mediante GitHub Actions para evitar problemas.** En desarrollo se puede optar por instalar el paquete localmente.
-
-Para utilizar el paquete de **CodeArtifact** en otro proyecto, sigue los siguientes pasos:
-
-1. Configura el acceso a **CodeArtifact** en tu entorno local:
-
-   ```bash
-   aws configure
-   ```
-
-2. Configura el instalador de paquetes de Python para que utilice **CodeArtifact**:
-
-- Si utilizas `pip`, existen dos opciones:
-
-  - Ejecutar el siguiente comando de _AWS CLI_ para configurar el índice de _pip_:
-
-  ```bash
-  aws codeartifact login --tool pip --repository python-sbayt-repository --domain sbayt --domain-owner 865413084983 --region eu-west-1
-  ```
-
-  - Extraer el token de autorización y configurar mediante `pip config` (**cambiando el índice**) o por parámetro (**sin cambiar el índice**):
-
-  ```bash
-  export CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain sbayt --domain-owner 865413084983 --region eu-west-1 --query authorizationToken --output text`
-
-  # Si se utiliza `pip config`:
-
-  pip config set global.index-url https://aws:$CODEARTIFACT_AUTH_TOKEN@sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/
-
-  pip install <package>
-
-  # Si se hace por parámetro:
-
-  pip install <package> --index-url https://aws:$CODEARTIFACT_AUTH_TOKEN@sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/
-  ```
-
-- Si utilizas `uv`, es necesario configurar las variables de entorno o utilizar los parámetros:
-
-  ```bash
-  export CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain sbayt --domain-owner 865413084983 --region eu-west-1 --query authorizationToken --output text`
-
-  # Si se establece la variable de entorno
-
-  export UV_DEFAULT_INDEX=`https://aws:$CODEARTIFACT_AUTH_TOKEN@sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/`
-
-  uv add <package>
-
-  # Si se utiliza el parámetro
-
-  uv add <package> --default-index https://aws:$CODEARTIFACT_AUTH_TOKEN@sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/
-  ```
-
-- También existe la posibilidad de añadir la cabecera al inicio del fichero `requirements.txt`:
-
-  ```bash
-  echo "$(echo '--extra-index-url https://aws:'"$CODEARTIFACT_AUTH_TOKEN"'@sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/' | cat - requirements.txt)" > requirements.txt
-  ```
-
-  Tras esto ya se podrán instalar las dependencias del proyecto con `pip install -r requirements.txt` o `uv pip install -r requirements.txt`.
+Al ejecutar el _workflow_ [CI.yml](.github/workflows/CI.yml), se desplegará el paquete en **PyPI**.
 
 ## GitHub Actions
 
-El archivo [CI.yml](.github/workflows/CI.yml) contiene un flujo de trabajo que se ejecuta en cada push a la rama master. Este flujo de trabajo consta de los siguientes trabajos:
+El archivo [ci.yml](.github/workflows/ci.yml) contiene un flujo de trabajo que se ejecuta en cada push a la rama master. Este flujo de trabajo consta de los siguientes trabajos:
 
 ### fetch
 
@@ -233,9 +172,8 @@ Realiza las siguientes acciones:
 
 - Checkout del código fuente.
 - Configura Python utilizando la acción setup-python.
-- Configura las credenciales de **AWS**.
 - Configura `uv`.
-- Construye y publica el paquete a **CodeArtifact**.
+- Construye y publica el paquete a **PyPI**.
 
 ## Ejecución de los Tests
 

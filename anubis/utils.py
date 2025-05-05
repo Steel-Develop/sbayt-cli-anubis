@@ -1,5 +1,5 @@
 """
-Serket CLI - Secure Environment Setup & Host Automation Toolkit
+Anubis CLI - Secure Environment Setup & Host Automation Toolkit
 ---------------------------------------------------------------
 
 This script defines and organizes a set of automated tasks for configuring and
@@ -13,22 +13,22 @@ Main features:
 - Verification of security and local environment configurations (Bitwarden, AWS ECR, etc.).
 
 Requirements:
-- Python 3.8 or higher.
+- Python 3.9 or higher.
 - Dependencies: invoke, rich, yaml (installable via pip).
 - A deployment file (default: deployment.yml) to define profiles and credentials.
 
 Basic usage:
     1. View available tasks:
-        invoke help
+        anubis help
     2. Check your local environment:
-        invoke check.environment
+        anubis check.environment
     3. Start Docker services with specific profiles:
-        invoke docker.up --profiles=infra,api --env=prod
+        anubis docker.up --profiles=infra,api --env=prod
     4. Configure pip for CodeArtifact:
-        invoke aws.configure-pip
+        anubis aws.configure-pip
 
 For more details or additional examples, refer to the documentation of each task
-using the `invoke --list` command or review the individual docstrings.
+using the `anubis --list` command or review the individual docstrings.
 """
 
 import importlib.metadata
@@ -36,9 +36,10 @@ import json
 import logging
 import os
 import shutil
-import subprocess
+import subprocess  # nosec B404
+from getpass import getpass
 from pathlib import Path
-from typing import Callable, Optional, Tuple
+from typing import Callable, Dict, Optional, Tuple
 
 import yaml
 from invoke.exceptions import Exit
@@ -55,8 +56,11 @@ logging.basicConfig(
 
 console = Console()
 
+# Configuration cache
+_config_cache: Dict[str, dict] = {}
+
 # Global variables
-VERSION = importlib.metadata.version("serket-cli")
+VERSION = importlib.metadata.version("anubis-cli")
 DEFAULT_ENV = "dev"
 DEFAULT_DEPLOYMENT_FILE = "deployment.yml"
 LOCAL_BIN_PATH = Path.home() / ".local/bin"
@@ -78,8 +82,8 @@ BWS_ZIP_PATH = LOCAL_BIN_PATH / "bws.zip"
 # AWS
 # Credential environment variables
 AWS_KEY_ID_VARIABLE_NAME = "AWS_ACCESS_KEY_ID"
-AWS_SECRET_VARIABLE_NAME = "AWS_SECRET_ACCESS_KEY"
-AWS_TOKEN_VARIABLE_NAME = "AWS_SESSION_TOKEN"
+AWS_SECRET_VARIABLE_NAME = "AWS_SECRET_ACCESS_KEY"  # nosec B105
+AWS_TOKEN_VARIABLE_NAME = "AWS_SESSION_TOKEN"  # nosec B105
 
 # AWS CLI installation
 AWS_CLI_VERSION = "2.15.50"
@@ -119,11 +123,22 @@ def _install_bws_cli():
 
     try:
         # Download the installer
-        subprocess.run(["curl", "-Lo", str(BWS_ZIP_PATH), BWS_DOWNLOAD_URL], check=True)
+
+        curl_path = shutil.which("curl")
+        if curl_path is None:
+            logging.error("❌ curl is not installed. Please install it first.")
+            raise Exit(code=1)
+        subprocess.run(  # nosec B603
+            [curl_path, "-Lo", str(BWS_ZIP_PATH), BWS_DOWNLOAD_URL], check=True
+        )
 
         # Extract to ~/.local/bin
-        subprocess.run(
-            ["unzip", "-d", str(LOCAL_BIN_PATH), str(BWS_ZIP_PATH)], check=True
+        unzip_path = shutil.which("unzip")
+        if unzip_path is None:
+            logging.error("❌ unzip is not installed. Please install it first.")
+            raise Exit(code=1)
+        subprocess.run(  # nosec B603
+            [unzip_path, "-d", str(LOCAL_BIN_PATH), str(BWS_ZIP_PATH)], check=True
         )
 
         # Update PATH so bws is available in the current shell
@@ -189,7 +204,7 @@ def _get_bws_token(deployment_file=None) -> Optional[str]:
         return token
 
     # 2) Attempt to read from deployment.yml
-    config = _load_deployment_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
     token = config.get("bws_access_token")
     if token:
         return token
@@ -202,7 +217,8 @@ def _ensure_bws_token(deployment_file=None):
     Ensures a Bitwarden access token is available for CLI usage.
 
     First attempts to retrieve it from environment or config.
-    If not found, prompts the user to input it interactively.
+    If not found, prompts the user to input it interactively using getpass
+    to hide the input.
 
     Args:
         deployment_file (str, optional): Path to the deployment YAML file.
@@ -214,13 +230,14 @@ def _ensure_bws_token(deployment_file=None):
         >>> _ensure_bws_token()
         🔐 Enter your BWS access token:
     """
+
     token: Optional[str] = _get_bws_token(deployment_file)
 
     if token is not None:
         return token
 
     try:
-        token = input("🔐 Enter your BWS access token: ").strip()
+        token = getpass("🔐 Enter your BWS access token: ").strip()
         if not token:
             logging.warning("No token provided. Skipping Bitwarden secrets loading.")
             return None
@@ -256,8 +273,12 @@ def _load_secrets_from_bws(deployment_file=None) -> dict:
         return {}
 
     try:
-        result = subprocess.run(
-            ["bws", "list", "secrets", "--access-token", bws_token],
+        bws_path = shutil.which("bws")
+        if bws_path is None:
+            logging.error("❌ Bitwarden CLI (bws) not found. Please install it first.")
+            return {}
+        result = subprocess.run(  # nosec B603
+            [bws_path, "list", "secrets", "--access-token", bws_token],
             capture_output=True,
             text=True,
             env=_build_env(),
@@ -305,15 +326,27 @@ def _install_aws_cli():
 
     try:
         # Download to TMP_DIR
+        curl_path = shutil.which("curl")
+        if curl_path is None:
+            logging.error("❌ curl is not installed. Please install it first.")
+            raise Exit(code=1)
         zip_path = TMP_DIR / "awscliv2.zip"
-        subprocess.run(["curl", "-Lo", str(zip_path), AWS_CLI_DOWNLOAD_URL], check=True)
+        subprocess.run(  # nosec B603
+            [curl_path, "-Lo", str(zip_path), AWS_CLI_DOWNLOAD_URL], check=True
+        )
 
         # Unzip to TMP_DIR
-        subprocess.run(["unzip", "-d", str(TMP_DIR), str(zip_path)], check=True)
+        unzip_path = shutil.which("unzip")
+        if unzip_path is None:
+            logging.error("❌ unzip is not installed. Please install it first.")
+            raise Exit(code=1)
+        subprocess.run(  # nosec B603
+            [unzip_path, "-d", str(TMP_DIR), str(zip_path)], check=True
+        )
 
         # Step 2) Run the installer
         install_script = TMP_DIR / "aws" / "install"
-        subprocess.run(
+        subprocess.run(  # nosec B603
             [
                 str(install_script),
                 "-i",
@@ -383,7 +416,7 @@ def _get_aws_account_id(deployment_file=None) -> str:
     Raises:
         Exit: If aws_account_id is not configured in deployment.yml
     """
-    config = _load_deployment_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
     account_id = config.get("aws_account_id")
     if not account_id:
         logging.error(
@@ -406,7 +439,7 @@ def _get_aws_region(deployment_file=None) -> str:
     Raises:
         Exit: If aws_region is not configured in deployment.yml
     """
-    config = _load_deployment_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
     region = config.get("aws_region")
     if not region:
         logging.error(
@@ -477,20 +510,34 @@ def _aws_ecr_login(bws_secrets: dict, deployment_file=None) -> bool:
     )
 
     try:
-        login_cmd = (
-            f"aws ecr get-login-password --region {aws_region} | "
-            f"docker login --username AWS --password-stdin {registry}"
-        )
-        subprocess.run(
-            login_cmd,
+
+        aws_path = shutil.which("aws")
+        if aws_path is None:
+            logging.error("❌ AWS CLI (aws) not found. Please install it first.")
+            return False
+        aws_proc = subprocess.run(  # nosec B603
+            [aws_path, "ecr", "get-login-password", "--region", aws_region],
+            check=True,
             capture_output=True,
-            shell=True,
             env=ephemeral_env,
         )
+
+        docker_path = shutil.which("docker")
+        if docker_path is None:
+            logging.error("❌ Docker CLI (docker) not found. Please install it first.")
+            return False
+        subprocess.run(  # nosec B603
+            [docker_path, "login", "--username", "AWS", "--password-stdin", registry],
+            input=aws_proc.stdout,
+            check=True,
+            env=ephemeral_env,
+        )
+
         return True
     except subprocess.CalledProcessError as e:
         logging.error("❌ Failed to authenticate Docker with AWS ECR")
         logging.debug(f"Command output: {e.output}")
+        return False
 
 
 def _get_codeartifact_token(
@@ -538,7 +585,7 @@ def _get_codeartifact_token(
         ephemeral_env[AWS_TOKEN_VARIABLE_NAME] = aws_session_token
 
     # Get required configuration from deployment.yml
-    config = _load_deployment_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
     domain = config.get("codeartifact_domain")
     if not domain:
         logging.error(
@@ -547,9 +594,14 @@ def _get_codeartifact_token(
         raise Exit(code=1)
 
     try:
-        result = subprocess.run(
+
+        aws_path = shutil.which("aws")
+        if aws_path is None:
+            logging.error("❌ AWS CLI (aws) not found. Please install it first.")
+            raise Exit(code=1)
+        result = subprocess.run(  # nosec B603
             [
-                "aws",
+                aws_path,
                 "codeartifact",
                 "get-authorization-token",
                 "--domain",
@@ -651,6 +703,25 @@ def _confirm_action(message, yes=False):
     return confirm.lower() == "y"
 
 
+def _get_cached_config(path: str = DEFAULT_DEPLOYMENT_FILE) -> dict:
+    """
+    Get configuration from cache if available, otherwise load it from file.
+
+    Args:
+        path (str): Path to the deployment configuration file.
+
+    Returns:
+        dict: Configuration dictionary
+    """
+
+    if path in _config_cache:
+        return _config_cache[path]
+
+    config = _load_deployment_config(path)
+    _config_cache[path] = config
+    return config
+
+
 def _load_deployment_config(path=DEFAULT_DEPLOYMENT_FILE):
     """
     Loads the deployment configuration from a YAML file.
@@ -676,7 +747,7 @@ def _load_deployment_config(path=DEFAULT_DEPLOYMENT_FILE):
     path_obj = Path(path)
     if path_obj.exists():
         logging.info(f"ℹ️ Using configuration file: {path_obj.absolute()}")
-        with open(path_obj, "r") as f:
+        with open(path_obj) as f:
             try:
                 return yaml.safe_load(f) or {}
             except yaml.YAMLError as e:
@@ -684,10 +755,10 @@ def _load_deployment_config(path=DEFAULT_DEPLOYMENT_FILE):
                 raise
 
     # If not found, try global config
-    global_path = Path.home() / ".config" / "serket" / "deployment.yml"
+    global_path = Path.home() / ".config" / "anubis" / "deployment.yml"
     if global_path.exists():
         logging.info(f"ℹ️ Using global configuration file: {global_path}")
-        with open(global_path, "r") as f:
+        with open(global_path) as f:
             try:
                 return yaml.safe_load(f) or {}
             except yaml.YAMLError as e:
@@ -723,6 +794,15 @@ def _get_config_from_sources(
     return os.environ.get(key) or (bws_secrets or {}).get(key) or default
 
 
+def _clear_config_cache():
+    """
+    Clears the configuration cache.
+    Use this when you want to force reloading the configuration from file.
+    """
+    global _config_cache
+    _config_cache.clear()
+
+
 def _get_profiles(profiles=None, deployment_file=None):
     """
     Returns the list of Docker Compose profiles to use, as a comma-separated string.
@@ -742,7 +822,7 @@ def _get_profiles(profiles=None, deployment_file=None):
     """
     if profiles:
         return ",".join(p.strip() for p in profiles.split(","))
-    config = _load_deployment_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
     return ",".join(config.get("profiles", ["infra"]))
 
 
@@ -794,7 +874,7 @@ def _launch_services(
     Returns:
         None
     """
-    config = _load_deployment_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
     load_secrets = (
         load_secrets_from_bws
         if load_secrets_from_bws is not None
@@ -1049,7 +1129,13 @@ def _check_docker_installed() -> bool:
 def _check_docker_access() -> bool:
     """Checks if the current user can run Docker commands."""
     try:
-        subprocess.run(["docker", "info"], capture_output=True, check=True)
+        docker_path = shutil.which("docker")
+        if docker_path is None:
+            logging.error("❌ Docker CLI (docker) not found. Please install it first.")
+            return False
+        subprocess.run(  # nosec B603
+            [docker_path, "info"], capture_output=True, check=True
+        )
         logging.info("✅ Docker is accessible (docker info succeeded).")
         return True
     except subprocess.CalledProcessError as e:
@@ -1141,7 +1227,7 @@ def _install_deployment_as_global(source_path=DEFAULT_DEPLOYMENT_FILE):
     """
     Installs a deployment configuration file as the global configuration.
 
-    Copies the specified deployment file to the global location (~/.config/serket/deployment.yml).
+    Copies the specified deployment file to the global location (~/.config/anubis/deployment.yml).
     Creates the directory structure if it doesn't exist.
 
     Args:
@@ -1159,7 +1245,7 @@ def _install_deployment_as_global(source_path=DEFAULT_DEPLOYMENT_FILE):
         raise Exit(code=1)
 
     # Create the global config directory if it doesn't exist
-    global_dir = Path.home() / ".config" / "serket"
+    global_dir = Path.home() / ".config" / "anubis"
     global_dir.mkdir(parents=True, exist_ok=True)
 
     # Define the destination path

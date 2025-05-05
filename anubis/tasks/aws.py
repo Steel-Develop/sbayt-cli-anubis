@@ -5,7 +5,7 @@ from pathlib import Path
 from invoke import Collection, Exit, task
 from rich.prompt import Confirm, Prompt
 
-from serket.utils import (
+from anubis.utils import (
     DEFAULT_DEPLOYMENT_FILE,
     LOAD_SECRETS_FROM_BWS_NAME,
     UV_CONFIG_FILE,
@@ -13,9 +13,9 @@ from serket.utils import (
     _find_tool,
     _get_aws_account_id,
     _get_aws_region,
+    _get_cached_config,
     _get_codeartifact_token,
     _install_aws_cli,
-    _load_deployment_config,
     _load_secrets_from_bws,
     _uninstall_aws_cli,
 )
@@ -66,7 +66,7 @@ def configure_pip(ctx, load_secrets_from_bws=None, deployment_file=None):
     if not _ensure_tool_installed("aws", _install_aws_cli):
         raise Exit(code=1)
 
-    config = _load_deployment_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
     load_secrets = (
         load_secrets_from_bws
         if load_secrets_from_bws is not None
@@ -81,7 +81,7 @@ def configure_pip(ctx, load_secrets_from_bws=None, deployment_file=None):
             logging.warning("⚠️ No secrets found in Bitwarden.")
 
     # Get all required configuration
-    config = _load_deployment_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
     aws_account_id = _get_aws_account_id(deployment_file)
     aws_region = _get_aws_region(deployment_file)
     domain = config.get("codeartifact_domain")
@@ -125,7 +125,7 @@ def configure_uv(ctx, load_secrets_from_bws=None, deployment_file=None):
     if not _ensure_tool_installed("aws", _install_aws_cli):
         raise Exit(code=1)
 
-    config = _load_deployment_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
     load_secrets = (
         load_secrets_from_bws
         if load_secrets_from_bws is not None
@@ -139,7 +139,7 @@ def configure_uv(ctx, load_secrets_from_bws=None, deployment_file=None):
             logging.warning("⚠️ No secrets found in Bitwarden.")
 
     # Get all required configuration
-    config = _load_deployment_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
     aws_account_id = _get_aws_account_id(deployment_file)
     aws_region = _get_aws_region(deployment_file)
     domain = config.get("codeartifact_domain")

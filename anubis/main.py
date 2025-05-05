@@ -2,7 +2,7 @@ import importlib.metadata
 
 from invoke import Collection, Program
 
-from serket.tasks import aws, bitwarden, docker, check, misc
+from anubis.tasks import aws, bitwarden, check, docker, misc
 
 ns = Collection()
 ns.add_collection(aws.aws_ns)
@@ -16,5 +16,5 @@ ns.add_task(misc.install_global_config, name="install-global-config")
 
 program = Program(
     namespace=ns,
-    version=importlib.metadata.version("serket-cli"),
+    version=importlib.metadata.version("anubis-cli"),
 )

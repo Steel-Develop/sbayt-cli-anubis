@@ -1,10 +1,6 @@
-from invoke import task, Collection
+from invoke import Collection, task
 
-
-from serket.utils import (
-    _install_bws_cli,
-    _uninstall_bws_cli,
-)
+from anubis.utils import _install_bws_cli, _uninstall_bws_cli
 
 
 @task

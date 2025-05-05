@@ -576,7 +576,7 @@ wheels = [
 ]
 
 [[package]]
-name = "serket-cli"
+name = "anubis-cli"
 version = "0.0.1"
 source = { editable = "." }
 dependencies = [
