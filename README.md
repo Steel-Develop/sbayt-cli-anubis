@@ -1,8 +1,23 @@
-# Anubis CLI - Kit de Herramientas para Configuración Segura de Entornos y Automatización de Hosts
+<h1 align="center">𓁢 Anubis CLI</h1>
+
+<p align="center">
+    <em>Automated Network & User Base Installation Service</em>
+</p>
+
+<p align="center">
+<a href="https://pypi.org/project/anubis-cli" target="_blank">
+    <img src="https://img.shields.io/pypi/v/anubis-cli?color=%2334D058&label=pypi%20package" alt="Package version">
+</a>
+<a href="https://pypi.org/project/anubis-cli" target="_blank">
+    <img src="https://img.shields.io/pypi/pyversions/anubis-cli.svg?color=%2334D058" alt="Supported Python versions">
+</a>
+</p>
+
+---
 
 ## Descripción
 
-Este script define y organiza un conjunto de tareas automatizadas para configurar y
+Esta herramienta define y organiza un conjunto de tareas automatizadas para configurar y
 gestionar entornos de desarrollo/producción. Utiliza `invoke` para estructurar las tareas
 y `rich` para mejorar la experiencia en terminal.
 
@@ -20,14 +35,15 @@ Requisitos:
 - Un archivo de despliegue (local o global, por defecto: deployment.yml) para definir perfiles y credenciales.
 
 Uso básico:
-    1. Ver tareas disponibles:
-        anubis help
-    2. Verificar tu entorno local:
-        anubis check.environment
-    3. Iniciar servicios Docker con perfiles específicos:
-        anubis docker.up --profiles=infra,api --env=prod
-    4. Configurar pip para CodeArtifact:
-        anubis aws.configure-pip
+
+   1. Ver tareas disponibles:
+        `anubis help`
+   2. Verificar tu entorno local:
+        `anubis check.environment`
+   3. Iniciar servicios Docker con perfiles específicos:
+        `anubis docker.up --profiles=infra,api --env=prod`
+   4. Configurar pip para CodeArtifact:
+        `anubis aws.configure-pip`
 
 Para más detalles o ejemplos adicionales, consulta la documentación de cada tarea
 usando el comando `anubis --list` o revisa los docstrings individuales.
@@ -243,7 +259,3 @@ If you're unsure whether it's a bug, feel free to discuss it in our forums or in
 ## Code of Conduct
 
 See the [Code of Conduct](https://github.com/Steel-Develop/sbayt-internal-agreements/blob/master/code-of-conduct.md).
-
-## License
-
-See the [LICENSE](https://github.com/Steel-Develop/sbayt-internal-agreements/blob/master/LICENSE) file.

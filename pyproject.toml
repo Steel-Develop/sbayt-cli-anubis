@@ -6,12 +6,14 @@ build-backend = "pdm.backend"
 [project]
 # Project information
 name = "anubis-cli"
-version = "0.0.1"
+version = "0.0.2"
 authors = [{ name = "Sbayt", email = "info@sbayt.ai" }]
 description = "Sbayt Anubis CLI"
 readme = "README.md"
+license = {text = "MIT"}
 classifiers = [
     "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: MIT License",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.9",

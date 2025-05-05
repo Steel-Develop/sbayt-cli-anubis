@@ -30,13 +30,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
-
       - name: Setup uv
         uses: astral-sh/setup-uv@v3
         with:
@@ -44,12 +37,6 @@ jobs:
           enable-cache: true
           cache-dependency-glob: |
             pyproject.toml
-
-      - name: Change uv index
-        run: |
-          export CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain sbayt --domain-owner 865413084983 --region ${{ vars.AWS_REGION }} --query authorizationToken --output text`
-          export UV_DEFAULT_INDEX="https://aws:${CODEARTIFACT_AUTH_TOKEN}@sbayt-865413084983.d.codeartifact.${{ vars.AWS_REGION }}.amazonaws.com/pypi/python-sbayt-repository/simple/"
-          echo "UV_DEFAULT_INDEX=$UV_DEFAULT_INDEX" >> $GITHUB_ENV
 
       - name: Sync dependencies
         run: uv sync --all-extras --dev
@@ -79,13 +66,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
-
       - name: Setup uv
         uses: astral-sh/setup-uv@v3
         with:
@@ -93,12 +73,6 @@ jobs:
           enable-cache: true
           cache-dependency-glob: |
             pyproject.toml
-
-      - name: Change uv index
-        run: |
-          export CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain sbayt --domain-owner 865413084983 --region ${{ vars.AWS_REGION }} --query authorizationToken --output text`
-          export UV_DEFAULT_INDEX="https://aws:${CODEARTIFACT_AUTH_TOKEN}@sbayt-865413084983.d.codeartifact.${{ vars.AWS_REGION }}.amazonaws.com/pypi/python-sbayt-repository/simple/"
-          echo "UV_DEFAULT_INDEX=$UV_DEFAULT_INDEX" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: uv sync --all-extras --dev
@@ -150,7 +124,7 @@ jobs:
         id: check-tag
         uses: samuelcolvin/check-python-version@v4.1
         with:
-          version_file_path: src/__init__.py
+          version_file_path: "pyproject.toml"
 
       - name: Setup uv
         uses: astral-sh/setup-uv@v3
@@ -160,23 +134,7 @@ jobs:
           cache-dependency-glob: |
             pyproject.toml
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: eu-west-1
-
-      - name: Change uv index
+      - name: Build and publish to PyPI
         run: |
-          export CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain sbayt --domain-owner 865413084983 --region ${{ vars.AWS_REGION }} --query authorizationToken --output text`
-          export UV_DEFAULT_INDEX="https://aws:${CODEARTIFACT_AUTH_TOKEN}@sbayt-865413084983.d.codeartifact.${{ vars.AWS_REGION }}.amazonaws.com/pypi/python-sbayt-repository/simple/"
-          echo "UV_DEFAULT_INDEX=$UV_DEFAULT_INDEX" >> $GITHUB_ENV
-
-      - name: Build and publish to AWS CodeArtifact
-        run: |
-          export UV_PUBLISH_USERNAME=aws
-          export UV_PUBLISH_PASSWORD=`aws codeartifact get-authorization-token --domain sbayt --domain-owner 865413084983 --region eu-west-1 --query authorizationToken --output text`
-          export UV_PUBLISH_URL=`aws codeartifact get-repository-endpoint --domain sbayt --domain-owner 865413084983 --repository python-sbayt-repository --region eu-west-1 --format pypi --query repositoryEndpoint --output text`
-          uv build
+          uv build --no-sources
           uv publish
