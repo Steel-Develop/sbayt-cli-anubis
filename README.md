@@ -21,20 +21,34 @@ Esta herramienta define y organiza un conjunto de tareas automatizadas para conf
 gestionar entornos de desarrollo/producción. Utiliza `invoke` para estructurar las tareas
 y `rich` para mejorar la experiencia en terminal.
 
-Características principales:
+### Características principales
 
 - Instalación local y gestión de herramientas CLI esenciales (AWS CLI, Bitwarden CLI).
 - Configuración de repositorios privados (CodeArtifact) para pip y uv.
 - Automatización de servicios Docker (crear red, iniciar, detener, limpiar, construir).
 - Verificación de configuraciones de seguridad y entorno local (Bitwarden, AWS ECR, etc.).
 
-Requisitos:
+### Instalación global
+
+Para instalar la herramienta de forma global, puedes utilizar `uv`(**recomendado**) o `pipx`.
+
+```bash
+# Con uv (recomendado)
+uv tool install anubis-cli
+```
+
+```bash
+# Con pipx
+pipx install anubis-cli
+```
+
+### Requisitos
 
 - Python 3.9 o superior.
 - [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) para instalar herramientas globalmente.
 - Un archivo de despliegue (local o global, por defecto: deployment.yml) para definir perfiles y credenciales.
 
-Uso básico:
+### Uso básico
 
    1. Ver tareas disponibles:
         `anubis help`
