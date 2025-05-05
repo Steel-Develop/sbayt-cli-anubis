@@ -6,7 +6,7 @@ build-backend = "pdm.backend"
 [project]
 # Project information
 name = "anubis-cli"
-version = "0.0.3"
+version = "0.0.4"
 authors = [{ name = "Sbayt", email = "info@sbayt.ai" }]
 description = "Sbayt Anubis CLI"
 readme = "README.md"
