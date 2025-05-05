@@ -45,6 +45,19 @@ Uso básico:
    4. Configurar pip para CodeArtifact:
         `anubis aws.configure-pip`
 
+Configurar autocompletado para `anubis`:
+
+```bash
+# Para bash
+anubis --print-completion-script bash > ~/.anubis-completion.bash
+echo "source ~/.anubis-completion.bash" >> ~/.bashrc
+source ~/.bashrc
+# Para zsh
+anubis --print-completion-script zsh > ~/.anubis-completion.zsh
+echo "source ~/.anubis-completion.zsh" >> ~/.zshrc
+source ~/.zshrc
+```
+
 Para más detalles o ejemplos adicionales, consulta la documentación de cada tarea
 usando el comando `anubis --list` o revisa los docstrings individuales.
 
