@@ -1,33 +1,59 @@
 [build-system]
-# Especifica el backend de construcción
+# Specifies the build backend
 requires = ["pdm-backend"]
 build-backend = "pdm.backend"
 
 [project]
-# Información del proyecto
-name = "sbayt-python-template"
-authors = [{ name = "Sbayt", email = "sbayt@gmail.com" }]
-description = "Python package template for Sbayt projects"
+# Project information
+name = "anubis-cli"
+version = "0.0.3"
+authors = [{ name = "Sbayt", email = "info@sbayt.ai" }]
+description = "Sbayt Anubis CLI"
 readme = "README.md"
+license = {text = "MIT"}
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 5 - Production/Stable",
+    "License :: OSI Approved :: MIT License",
     "Intended Audience :: Developers",
-    "License :: All Rights Reserved",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
-requires-python = ">=3.9" # Versión de Python requerida
-dynamic = ["version"] # Versión dinámica, se extrae del archivo __init__.py
-dependencies = ["numpy>=1.26.3", "pandas==2.2.3"] # Dependencias del proyecto
+requires-python = ">=3.9"
 
-[project.optional-dependencies] # Dependencias opcionales
-all = ["matplotlib"]
+packages = [
+    { include = "anubis" }
+]
 
+# Dependencies
+# =============================================================================
+dependencies = [
+    # Core Libraries
+    "invoke>=2.2.0",
+    "pyyaml>=6.0.2",
+    "rich>=14.0.0",
+    "uv>=0.7.0",
+]
+
+# Optional Dependencies
+# =============================================================================
+#[project.optional-dependencies]
+#all = ["matplotlib"]
+
+# Development Dependencies
+# =============================================================================
 [tool.uv]
 dev-dependencies = [
-    "pytest<9.0.0,>=8.2.2",
+    # Tests
+    "pytest==8.3.2",
+    "pytest-asyncio==0.23.8",
+    "pytest-mock==3.14.0",
+    "pytest-docker==3.1.1",
+    "pytest-env==1.1.3",
+    "pytest-sugar==1.0.0",
+    "setuptools>=68.0.0",
+    # Source code quality
     "pytest-cov<=6.0.0,>=5.0.0",
     "mypy<2.0.0,>=1.8.0",
     "pre-commit<4.0.0,>=3.7.1",
@@ -35,17 +61,23 @@ dev-dependencies = [
     "Flake8-pyproject<2.0.0,>=1.2.3",
     "isort<6.0.0,>=5.13.2",
     "black<25.0.0,>=24.10.0",
-] # Dependencias de desarrollo
+]
+
+[project.scripts]
+anubis = "anubis.main:program.run"
 
 [project.urls]
 # URLs del proyecto
-Documentation = "https://github.com/Steel-Develop/sbayt-pyp-template/tree/master#readme"
-Homepage = "https://github.com/Steel-Develop/sbayt-pyp-template"
-Issues = "https://steeldevelop.atlassian.net"
+Documentation = "https://github.com/Steel-Develop/sbayt-cli-anubis/tree/master#readme"
+Homepage = "https://github.com/Steel-Develop/sbayt-cli-anubis"
+Issues = "https://github.com/Steel-Develop/sbayt-cli-anubis/issues"
 
+# Tools
+# =============================================================================
 [tool.pdm]
-# Configuración de PDM
-version = { source = "file", path = "src/__init__.py" }
+packages = [
+    { include = "anubis", from = "." }
+]
 distribution = true
 
 [tool.mypy]
@@ -55,7 +87,7 @@ explicit_package_bases = true
 exclude_dirs = ["build", "dist", "tests", "scripts"]
 number = 4
 recursive = true
-targets = "src"
+targets = "anubis"
 
 [tool.black]
 line-length = 88
@@ -93,14 +125,14 @@ ignore = ["E203", "E266", "E501", "W503", "F403", "F401"]
 
 [tool.isort]
 profile = "black"
-known_first_party = "src"
+known_first_party = "anubis"
 multi_line_output = 3
 include_trailing_comma = true
 force_grid_wrap = 0
 
 [tool.pytest.ini_options]
-addopts = "--cov src"
-pythonpath = ["src"]
+addopts = "--cov anubis"
+pythonpath = ["anubis"]
 testpaths = "tests"
 junit_family = "xunit2"
 markers = ["integration: marks as integration test", "unit: marks as unit test"]
