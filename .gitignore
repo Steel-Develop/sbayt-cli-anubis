@@ -133,3 +133,7 @@ dmypy.json
 
 # deployment.yml
 deployment.yml
+
+# Spyder
+.spyproject/
+
