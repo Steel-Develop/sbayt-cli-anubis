@@ -40,9 +40,9 @@ import subprocess  # nosec B404
 from getpass import getpass
 from pathlib import Path
 from typing import Callable, Dict, Optional, Tuple
-from jinja2 import Template
 
 import yaml
+from jinja2 import Template
 from invoke.exceptions import Exit
 from rich.console import Console
 
@@ -99,6 +99,21 @@ AWS_ECR_REGISTRY_TEMPLATE = "{account_id}.dkr.ecr.{region}.amazonaws.com"
 
 # uv
 UV_CONFIG_FILE = Path.home() / ".config" / "uv" / "uv.toml"
+
+# Spark
+DEFAULT_DAGS_PATH = (
+    Path.cwd()
+    / 'lakehouse'
+    / 'data-management'
+    / 'dags'
+)
+DEFAULT_JOBS_PATH =(
+    Path.cwd()
+    / 'lakehouse'
+    / 'data-management'
+    / 'map_reduce'
+    / 'spark'
+)
 
 # =============================================================================
 # Métodos auxiliares para Bitwarden
@@ -1270,7 +1285,7 @@ def _install_deployment_as_global(source_path=DEFAULT_DEPLOYMENT_FILE):
 def _get_zip_from_codeartifact(
         package_name: str,
         version: str,
-        job_folder_path: Path,
+        artifact_path: Path,
         bws_secrets: dict,
         deployment_file: str = None,
 ) -> None:
@@ -1283,7 +1298,7 @@ def _get_zip_from_codeartifact(
     Args:
         package_name (str): Package name in CodeArtifact.
         version (str): Desired package version.
-        job_folder_path (Path): Path to the temporary directory where deps.zip
+        artifact_path (Path): Path to the temporary directory where deps.zip
             will be saved.
         bws_secrets (dict): Dict with AWS credentials.
         deployment_file (str): Optional deployment config file to get
@@ -1320,7 +1335,7 @@ def _get_zip_from_codeartifact(
         "AWS_REGION": aws_region,
     }
     
-    job_folder_path.mkdir(exist_ok=True)
+    artifact_path.mkdir(exist_ok=True)
 
     cmd = [
         aws_path, 'codeartifact', 'get-package-version-asset',
@@ -1331,7 +1346,7 @@ def _get_zip_from_codeartifact(
         '--format', 'generic',
         '--namespace', 'pipeline',
         '--asset', 'deps.zip',
-        str(job_folder_path / 'deps.zip')
+        str(artifact_path / 'deps.zip')
         ]
 
     try:
@@ -1344,26 +1359,26 @@ def _get_zip_from_codeartifact(
             )
         raise 
         
-    logging.info(f'Job {package_name} downloaded to {job_folder_path}')
+    logging.info(f'Job {package_name} downloaded to {artifact_path}')
 
 
-def _unzip_job(job_folder_path: Path) -> None:
+def _unzip_artifact(artifact_path: Path) -> None:
     """
     Unzip the deps.zip file and extract it to the specified directory.
     Then delete the .zip file.
     
     Args:
-        job_folder_path (Path): Path to deps.zip folder.
+        artifact_path (Path): Path to the folder where deps.zip is located.
     
     Raises:
         subprocess.CalledProcessError: If the download or saving steps fail.
     """
     
-    zip_path = job_folder_path / 'deps.zip'
+    zip_path = artifact_path / 'deps.zip'
     cmd = [
         'unzip', '-o',
         str(zip_path),
-        '-d', str(job_folder_path)
+        '-d', str(artifact_path)
         ]
     try:
         subprocess.run(cmd, check=True, capture_output=True,
@@ -1372,12 +1387,12 @@ def _unzip_job(job_folder_path: Path) -> None:
 
     except subprocess.CalledProcessError as e:
         logging.error(
-            f'Failed to unzip {job_folder_path}: {e}'
+            f'Failed to unzip {artifact_path}: {e}'
             )
         raise 
         
 
-def _render_dag_template(job_folder_path: Path, **kwargs) -> None:
+def _render_dag_template(artifact_path: Path, **kwargs) -> None:
     """
     Injects parameters from deployment.yml into dag.py.template within the
         seleted folder, if the parameters are defined in the deployment.yml and
@@ -1385,13 +1400,13 @@ def _render_dag_template(job_folder_path: Path, **kwargs) -> None:
     Outputs a dag.py file.
         
     Args:
-        job_folder_path (Path): Path to dag.py folder.
+        artifact_path (Path): Path to the folder where dag.py is located.
     """
     
-    dag_template_path = job_folder_path / 'dag.py.template'
+    dag_template_path = artifact_path / 'dag.py.template'
     if not dag_template_path.exists():
         logging.info(
-            f'dag.py.template not found. {job_folder_path} does not contain a '
+            f'dag.py.template not found. {artifact_path} does not contain a '
             'DAG file template. Skipping.'
         )
         return None
@@ -1406,40 +1421,36 @@ def _render_dag_template(job_folder_path: Path, **kwargs) -> None:
         fout.write(rendered_dag)
     
 
-def _deploy_job_and_dag_files(job_folder_path: Path) -> None:
+def _deploy_job_and_dag_files(
+        artifact_path: Path,
+        dags_path: Path,
+        jobs_path: Path
+    ) -> None:
     """
     Distributes according to their respective packages. Folders are created,
         and both dags and jobs are placed within the corresponding directories
         for execution on the platform.
         
     Args:
-        job_folder_path (Path): Path to dag.py folder.
+        artifact_path (Path): Path to the folder where dag.py and job.py are
+            located (Source).
+        dags_path (Path): Path where the Airflow DAGs are located. (Destination)
+        jobs_path (Path): Path where the Spark Jobs are located. (Destination)
     """
     
-    package = job_folder_path.name
-    output_dag_folder = (
-        Path.cwd()
-        / 'lakehouse'
-        / 'data-management'
-        / 'dags'
-        / package
-    )
+    package = artifact_path.name
+    output_dag_folder = dags_path / package
+
 
     if package == 'utils':
         shutil.rmtree(str(output_dag_folder), ignore_errors=True)
-        shutil.copytree(str(job_folder_path), str(output_dag_folder))
+        shutil.copytree(str(artifact_path), str(output_dag_folder))
         return None
     
-    output_job_folder = (
-        Path.cwd()
-        / 'lakehouse'
-        / 'data-management'
-        / 'map_reduce'
-        / 'spark' 
-        / package
-    )
-    input_dag_file = job_folder_path / 'dag.py'
-    input_job_file = job_folder_path / 'job.py'
+    output_job_folder = jobs_path / package
+
+    input_dag_file = artifact_path / 'dag.py'
+    input_job_file = artifact_path / 'job.py'
     
     # Deploy dag
     if output_dag_folder.exists():
@@ -1454,12 +1465,13 @@ def _deploy_job_and_dag_files(job_folder_path: Path) -> None:
     shutil.copy(str(input_job_file), str(output_job_folder / 'job.py'))
     
     
-def _remove_job_and_dag_files() -> None:
+def _remove_job_and_dag_files(dags_path: Path, jobs_path: Path) -> None:
     """
     Deletion of job and dag files and restoration of the folder structure.
     
-    Raises:
-        Exit: If the dag folder doesn't exist in the subdirectories.
+    Args:
+        dags_path (Path): Path where the Airflow DAGs are located.
+        jobs_path (Path): Path where the Spark Jobs are located.
     """
     
     excluded_items = {
@@ -1467,19 +1479,7 @@ def _remove_job_and_dag_files() -> None:
         }
     
     # Dag reset & deletes
-    dag_folder = (
-        Path.cwd()
-        / 'lakehouse'
-        / 'data-management'
-        / 'dags'
-    )
-    if not dag_folder.exists():
-        logging.error(
-            f'x Failed to find ./lakehouse/data-management in {Path.cwd()}'
-            )
-        raise Exit(code=1)
-        
-    for item in dag_folder.iterdir():
+    for item in dags_path.iterdir():
         if item.name in excluded_items:
             continue
         if item.is_dir():
@@ -1488,14 +1488,7 @@ def _remove_job_and_dag_files() -> None:
             item.unlink()
         
     # Job reset & deletes
-    job_folder = (
-        Path.cwd()
-        / 'lakehouse'
-        / 'data-management'
-        / 'map_reduce'
-        / 'spark'
-    )
-    for item in job_folder.iterdir():
+    for item in jobs_path.iterdir():
         if item.name in excluded_items:
             continue
         if item.is_dir():
