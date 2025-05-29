@@ -70,6 +70,14 @@ def help(ctx):
             ),
         ],
     )
+    
+    _print_section(
+        "🧰 Spark Tasks",
+        [
+            ("spark.deploy-jobs", "Deploy jobs & DAGs configured in deployment.yml"),
+            ("spark.remove-jobs", "Remove-reset jobs $ DAGs from infrastructure")
+        ],
+    )
 
     _print_section(
         "🔐 Bitwarden Tasks",
