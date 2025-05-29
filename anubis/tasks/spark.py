@@ -26,20 +26,20 @@ from anubis.utils import (
 
 
 @task
-def deploy_jobs(ctx, load_secrets_from_bws=None, deployment_file=None,
+def deploy_dags(ctx, load_secrets_from_bws=None, deployment_file=None,
                 env=DEFAULT_ENV):
     """
-    Deployment of Spark jobs and Airflow dags and integration with the
-        platform. Downloads files from CodeArtifact, renders the dags (if
-        variable injection is needed), and distributes the files to their
-        corresponding paths on the platform.
+    Deployment of Airflow Dags and integration with the platform. Downloads
+        files from CodeArtifact, renders the dags (if variable injection is
+        needed), and distributes the files to their corresponding paths on the
+        platform.
         
     Raises:
         Exit: If the DAG or job folder doesn't exist in the subdirectories or 
             if aws cli is not installed.
         
     Usage:
-        anubis spark.deploy-jobs
+        anubis spark.deploy-dags
     """
     config = _get_cached_config(
         path=deployment_file or DEFAULT_DEPLOYMENT_FILE
@@ -76,7 +76,7 @@ def deploy_jobs(ctx, load_secrets_from_bws=None, deployment_file=None,
     dags_config = config.get('airflow_dags')
     if not dags_config:
         logging.warning(
-            "x Spark jobs config not found or empty. "
+            "x Airflow DAGs config not found or empty. "
             "Add jobs config to 'spark_jobs:' in your deployment.yml"
         )
         return
@@ -147,7 +147,7 @@ def deploy_jobs(ctx, load_secrets_from_bws=None, deployment_file=None,
         )
     
 @task
-def remove_jobs(ctx, deployment_file=None, env=DEFAULT_ENV):
+def remove_dags(ctx, deployment_file=None, env=DEFAULT_ENV):
     """
     Deletion of job and dag files and restoration of the folder structure.
     
@@ -155,7 +155,7 @@ def remove_jobs(ctx, deployment_file=None, env=DEFAULT_ENV):
         Exit: If the DAG or job folder doesn't exist in the subdirectories.
     
     Usage:
-        anubis spark.remove-jobs
+        anubis spark.remove-dags
     """
     
     config = _get_cached_config(
