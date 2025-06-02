@@ -186,6 +186,7 @@ def down(ctx, profiles=None, yes=False, env=DEFAULT_ENV, deployment_file=None):
     Stops and removes Docker Compose services.
 
     Optionally also removes volumes and orphan containers based on user confirmation.
+    If configured, can also remove Spark DAGs and jobs automatically.
 
     Args:
         ctx: Invoke context.
@@ -198,6 +199,12 @@ def down(ctx, profiles=None, yes=False, env=DEFAULT_ENV, deployment_file=None):
         invoke down
         invoke down --profiles=api,infra --yes
     """
+    from anubis.utils import (
+        _get_cached_config,
+        remove_spark_dags,
+        DEFAULT_DEPLOYMENT_FILE,
+    )
+
     if not _confirm_action("Are you sure you want to stop all containers?", yes=yes):
         logging.info("Operation aborted by user.")
         return
@@ -205,6 +212,17 @@ def down(ctx, profiles=None, yes=False, env=DEFAULT_ENV, deployment_file=None):
     remove_orphans = _confirm_action(
         "Do you want to remove orphan containers?", yes=yes
     )
+
+    # Check if DAGs should be removed based on configuration
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+    keep_dags_and_jobs = config.get("keep_dags_and_jobs", True)
+
+    remove_dags = False
+    if not keep_dags_and_jobs:
+        remove_dags = _confirm_action(
+            "Do you want to remove Spark DAGs and jobs?", yes=yes
+        )
+
     options = ""
     if remove_volumes:
         options += " --volumes"
@@ -216,6 +234,24 @@ def down(ctx, profiles=None, yes=False, env=DEFAULT_ENV, deployment_file=None):
         env={**os.environ, "ENV": env},
         pty=True,
     )
+
+    # Remove DAGs and jobs if requested
+    if remove_dags:
+        logging.info("🗑️ Removing Spark DAGs and jobs...")
+        try:
+            success = remove_spark_dags(deployment_file=deployment_file, env=env)
+            if success:
+                logging.info("✅ Spark DAGs and jobs removed successfully")
+            else:
+                logging.warning("⚠️ Failed to remove Spark DAGs and jobs")
+        except Exception as e:
+            logging.warning(f"⚠️ Error removing Spark DAGs and jobs: {e}")
+    elif not keep_dags_and_jobs:
+        logging.info("ℹ️ DAGs and jobs removal skipped by user choice")
+    else:
+        logging.debug(
+            "ℹ️ DAGs and jobs kept based on configuration (keep_dags_and_jobs=True)"
+        )
 
 
 @task

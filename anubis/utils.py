@@ -101,18 +101,9 @@ AWS_ECR_REGISTRY_TEMPLATE = "{account_id}.dkr.ecr.{region}.amazonaws.com"
 UV_CONFIG_FILE = Path.home() / ".config" / "uv" / "uv.toml"
 
 # Spark
-DEFAULT_DAGS_PATH = (
-    Path.cwd()
-    / 'lakehouse'
-    / 'data-management'
-    / 'dags'
-)
-DEFAULT_JOBS_PATH =(
-    Path.cwd()
-    / 'lakehouse'
-    / 'data-management'
-    / 'map_reduce'
-    / 'spark'
+DEFAULT_DAGS_PATH = Path.cwd() / "lakehouse" / "data-management" / "dags"
+DEFAULT_JOBS_PATH = (
+    Path.cwd() / "lakehouse" / "data-management" / "map_reduce" / "spark"
 )
 
 # =============================================================================
@@ -557,8 +548,8 @@ def _aws_ecr_login(bws_secrets: dict, deployment_file=None) -> bool:
 
 
 def _get_codeartifact_token(
-    bws_secrets: dict, deployment_file: str = None
-) -> tuple[str, str]:
+    bws_secrets: dict, deployment_file: Optional[str] = None
+) -> Optional[str]:
     """
     Retrieves a CodeArtifact authorization token using temporary AWS credentials.
 
@@ -668,7 +659,7 @@ def _get_env_file(env):
     return DEFAULT_ENV_FOLDER_TEMPLATE.format(env=env)
 
 
-def _build_env(env: Optional[str] = None, extra_vars: dict = None) -> dict:
+def _build_env(env: Optional[str] = None, extra_vars: Optional[dict] = None) -> dict:
     """
     Builds a clean environment dictionary for subprocesses,
     ensuring ~/.local/bin is in PATH and including ENV and any extra vars.
@@ -865,6 +856,56 @@ def _get_profiles_args(profiles=None, deployment_file=None):
     return " ".join([f"--profile {p.strip()}" for p in profiles.split(",")])
 
 
+def _auto_deploy_dags_if_needed(
+    load_secrets_from_bws: Optional[bool] = None,
+    deployment_file: Optional[str] = None,
+    env: str = DEFAULT_ENV,
+) -> None:
+    """
+    Verifica si los DAGs existen y los despliega automáticamente si no están presentes.
+
+    Args:
+        load_secrets_from_bws (bool, optional): Si cargar secretos desde Bitwarden.
+        deployment_file (str, optional): Ruta al archivo de configuración.
+        env (str): Entorno de despliegue.
+    """
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+
+    # Obtener rutas de DAGs y jobs del config o usar defaults
+    dags_path = Path(config.get("dags_path", DEFAULT_DAGS_PATH))
+    jobs_path = Path(config.get("jobs_path", DEFAULT_JOBS_PATH))
+
+    # Verificar si las rutas existen y están vacías
+    dags_need_deployment = not dags_path.exists() or not any(dags_path.iterdir())
+    jobs_need_deployment = not jobs_path.exists() or not any(jobs_path.iterdir())
+
+    # Verificar si hay configuración de DAGs
+    dags_config = config.get("airflow_dags")
+
+    if (dags_need_deployment or jobs_need_deployment) and dags_config:
+        logging.info("🔍 DAGs or jobs not found, attempting auto-deployment...")
+        try:
+            success = deploy_spark_dags(
+                load_secrets_from_bws=load_secrets_from_bws,
+                deployment_file=deployment_file,
+                env=env,
+                dags_path=dags_path,
+                jobs_path=jobs_path,
+            )
+            if success:
+                logging.info("✅ DAGs auto-deployment completed successfully")
+            else:
+                logging.warning(
+                    "⚠️ DAGs auto-deployment failed, continuing without DAGs"
+                )
+        except Exception as e:
+            logging.warning(
+                f"⚠️ DAGs auto-deployment failed: {e}, continuing without DAGs"
+            )
+    elif not dags_config:
+        logging.debug("ℹ️ No DAGs configuration found, skipping auto-deployment")
+
+
 def _launch_services(
     ctx,
     profiles,
@@ -878,7 +919,8 @@ def _launch_services(
     Internal helper to start Docker Compose services based on selected profiles.
 
     Loads secrets from Bitwarden, authenticates with AWS ECR if credentials are available,
-    and runs `docker compose up` using the selected mode and environment.
+    automatically deploys Spark DAGs if needed, and runs `docker compose up` using the
+    selected mode and environment.
 
     Args:
         ctx: Invoke context.
@@ -910,6 +952,15 @@ def _launch_services(
         aws_login_success = _aws_ecr_login(bws_secrets, deployment_file)
         if not aws_login_success:
             logging.warning("⚠️ Docker was not authenticated with AWS ECR")
+
+    # Auto-deploy Spark DAGs if enabled and DAGs don't exist
+    auto_deploy_dags = config.get("auto_deploy_dags", True)
+    if auto_deploy_dags:
+        _auto_deploy_dags_if_needed(
+            load_secrets_from_bws=load_secrets_from_bws,
+            deployment_file=deployment_file,
+            env=env,
+        )
 
     # Get the effective profiles
     profiles_args = _get_profiles_args(profiles, deployment_file)
@@ -997,7 +1048,6 @@ def _check_aws_configuration(bws_secrets: dict, deployment_file=None):
     # 2) Retrieve AWS credentials from Bitwarden secrets
     aws_access_key = bws_secrets.get(AWS_KEY_ID_VARIABLE_NAME)
     aws_secret_key = bws_secrets.get(AWS_SECRET_VARIABLE_NAME)
-    aws_session_token = bws_secrets.get(AWS_TOKEN_VARIABLE_NAME)
 
     # 3) Retrieve region/account from deployment.yml (or defaults)
     aws_account_id = _get_aws_account_id(deployment_file)
@@ -1079,7 +1129,7 @@ def _check_local_bin_in_path():
         logging.info(
             "   Add the following to your shell profile (~/.bashrc, ~/.zshrc, etc):"
         )
-        logging.info(f'   export PATH="$HOME/.local/bin:$PATH"')
+        logging.info('   export PATH="$HOME/.local/bin:$PATH"')
     else:
         logging.info("✅ ~/.local/bin is in your PATH.")
 
@@ -1283,18 +1333,18 @@ def _install_deployment_as_global(source_path=DEFAULT_DEPLOYMENT_FILE):
 
 
 def _get_zip_from_codeartifact(
-        package_name: str,
-        version: str,
-        artifact_path: Path,
-        bws_secrets: dict,
-        deployment_file: str = None,
+    package_name: str,
+    version: str,
+    artifact_path: Path,
+    bws_secrets: dict,
+    deployment_file: Optional[str] = None,
 ) -> None:
     """
     Downloads and saves to a temporary folder the ZIP files containing the
     Spark job and the Airflow DAG from CodeArtifact.
     It saves a file named 'deps.zip' inside the specified path and creates the
     directory structure if it doesn't exist.
-    
+
     Args:
         package_name (str): Package name in CodeArtifact.
         version (str): Desired package version.
@@ -1303,16 +1353,15 @@ def _get_zip_from_codeartifact(
         bws_secrets (dict): Dict with AWS credentials.
         deployment_file (str): Optional deployment config file to get
             region/account.
-        
+
     Raises:
         subprocess.CalledProcessError: If the download or saving steps fail.
     """
 
-    config = _get_cached_config(
-        path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
-    domain = config.get('codeartifact_domain')
-    aws_region = config.get('aws_region')
-    
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+    domain = config.get("codeartifact_domain")
+    aws_region = config.get("aws_region")
+
     if not (domain and aws_region):
         logging.warning(
             "Missing AWS credentials or configuration. "
@@ -1320,8 +1369,8 @@ def _get_zip_from_codeartifact(
         )
         return None
 
-    aws_path = shutil.which('aws')
-    
+    aws_path = shutil.which("aws")
+
     aws_access_key = _get_config_from_sources(
         AWS_KEY_ID_VARIABLE_NAME, bws_secrets=bws_secrets
     )
@@ -1334,63 +1383,64 @@ def _get_zip_from_codeartifact(
         AWS_SECRET_VARIABLE_NAME: aws_secret_key,
         "AWS_REGION": aws_region,
     }
-    
+
     artifact_path.mkdir(exist_ok=True)
 
     cmd = [
-        aws_path, 'codeartifact', 'get-package-version-asset',
-        '--domain', domain,
-        '--package', package_name,
-        '--package-version', version,
-        '--repository', 'sbayt-data-spark-dags',
-        '--format', 'generic',
-        '--namespace', 'pipeline',
-        '--asset', 'deps.zip',
-        str(artifact_path / 'deps.zip')
-        ]
+        aws_path,
+        "codeartifact",
+        "get-package-version-asset",
+        "--domain",
+        domain,
+        "--package",
+        package_name,
+        "--package-version",
+        version,
+        "--repository",
+        "sbayt-data-spark-dags",
+        "--format",
+        "generic",
+        "--namespace",
+        "pipeline",
+        "--asset",
+        "deps.zip",
+        str(artifact_path / "deps.zip"),
+    ]
 
     try:
-        subprocess.run(cmd, check=True, env=ephemeral_env,
-                       capture_output=True, text=True) # nosec B603
+        subprocess.run(
+            cmd, check=True, env=ephemeral_env, capture_output=True, text=True
+        )  # nosec B603
 
     except subprocess.CalledProcessError as e:
-        logging.error(
-            f'Failed to download {package_name} from CodeArtifact: {e}'
-            )
-        raise 
-        
-    logging.info(f'Job {package_name} downloaded to {artifact_path}')
+        logging.error(f"Failed to download {package_name} from CodeArtifact: {e}")
+        raise
+
+    logging.info(f"Job {package_name} downloaded to {artifact_path}")
 
 
 def _unzip_artifact(artifact_path: Path) -> None:
     """
     Unzip the deps.zip file and extract it to the specified directory.
     Then delete the .zip file.
-    
+
     Args:
         artifact_path (Path): Path to the folder where deps.zip is located.
-    
+
     Raises:
         subprocess.CalledProcessError: If the download or saving steps fail.
     """
-    
-    zip_path = artifact_path / 'deps.zip'
-    cmd = [
-        'unzip', '-o',
-        str(zip_path),
-        '-d', str(artifact_path)
-        ]
+
+    zip_path = artifact_path / "deps.zip"
+    cmd = ["unzip", "-o", str(zip_path), "-d", str(artifact_path)]
     try:
-        subprocess.run(cmd, check=True, capture_output=True,
-                       text=True) # nosec B603
+        subprocess.run(cmd, check=True, capture_output=True, text=True)  # nosec B603
         os.remove(zip_path)
 
     except subprocess.CalledProcessError as e:
-        logging.error(
-            f'Failed to unzip {artifact_path}: {e}'
-            )
-        raise 
-        
+        logging.error(f"Failed to unzip {artifact_path}: {e}")
+        raise
+
 
 def _render_dag_template(artifact_path: Path, **kwargs) -> None:
     """
@@ -1398,86 +1448,83 @@ def _render_dag_template(artifact_path: Path, **kwargs) -> None:
         seleted folder, if the parameters are defined in the deployment.yml and
         variables referenced in the template file.
     Outputs a dag.py file.
-        
+
     Args:
         artifact_path (Path): Path to the folder where dag.py is located.
     """
-    
-    dag_template_path = artifact_path / 'dag.py.template'
+
+    dag_template_path = artifact_path / "dag.py.template"
     if not dag_template_path.exists():
         logging.info(
-            f'dag.py.template not found. {artifact_path} does not contain a '
-            'DAG file template. Skipping.'
+            f"dag.py.template not found. {artifact_path} does not contain a "
+            "DAG file template. Skipping."
         )
         return None
-    
-    with open(dag_template_path, 'r') as fin:
+
+    with open(dag_template_path, "r") as fin:
         dag_str = fin.read()
-    
+
     dag_template = Template(dag_str)
     rendered_dag = dag_template.render(**kwargs)
-    
-    with open(dag_template_path.with_name('dag.py'), 'w') as fout:
+
+    with open(dag_template_path.with_name("dag.py"), "w") as fout:
         fout.write(rendered_dag)
-    
+
 
 def _deploy_job_and_dag_files(
-        artifact_path: Path,
-        dags_path: Path,
-        jobs_path: Path
-    ) -> None:
+    artifact_path: Path, dags_path: Path, jobs_path: Path
+) -> None:
     """
     Distributes according to their respective packages. Folders are created,
         and both dags and jobs are placed within the corresponding directories
         for execution on the platform.
-        
+
     Args:
         artifact_path (Path): Path to the folder where dag.py and job.py are
             located (Source).
         dags_path (Path): Path where the Airflow DAGs are located. (Destination)
         jobs_path (Path): Path where the Spark Jobs are located. (Destination)
     """
-    
+
     package = artifact_path.name
     output_dag_folder = dags_path / package
 
-
-    if package == 'utils':
+    if package == "utils":
         shutil.rmtree(str(output_dag_folder), ignore_errors=True)
         shutil.copytree(str(artifact_path), str(output_dag_folder))
         return None
-    
+
     output_job_folder = jobs_path / package
 
-    input_dag_file = artifact_path / 'dag.py'
-    input_job_file = artifact_path / 'job.py'
-    
+    input_dag_file = artifact_path / "dag.py"
+    input_job_file = artifact_path / "job.py"
+
     # Deploy dag
     if output_dag_folder.exists():
         shutil.rmtree(output_dag_folder)
     output_dag_folder.mkdir()
-    shutil.copy(str(input_dag_file), str(output_dag_folder / 'dag.py'))
-    
+    shutil.copy(str(input_dag_file), str(output_dag_folder / "dag.py"))
+
     # Deploy job
     if output_job_folder.exists():
         shutil.rmtree(output_job_folder)
     output_job_folder.mkdir()
-    shutil.copy(str(input_job_file), str(output_job_folder / 'job.py'))
-    
-    
+    shutil.copy(str(input_job_file), str(output_job_folder / "job.py"))
+
+
 def _remove_job_and_dag_files(dags_path: Path, jobs_path: Path) -> None:
     """
     Deletion of job and dag files and restoration of the folder structure.
-    
+
     Args:
         dags_path (Path): Path where the Airflow DAGs are located.
         jobs_path (Path): Path where the Spark Jobs are located.
     """
-    
+
     excluded_items = {
-        '.gitkeep',
-        }
-    
+        ".gitkeep",
+    }
+
     # Dag reset & deletes
     for item in dags_path.iterdir():
         if item.name in excluded_items:
@@ -1486,7 +1533,7 @@ def _remove_job_and_dag_files(dags_path: Path, jobs_path: Path) -> None:
             shutil.rmtree(item)
         else:
             item.unlink()
-        
+
     # Job reset & deletes
     for item in jobs_path.iterdir():
         if item.name in excluded_items:
@@ -1495,6 +1542,175 @@ def _remove_job_and_dag_files(dags_path: Path, jobs_path: Path) -> None:
             shutil.rmtree(item)
         else:
             item.unlink()
-            
+
+    # Job reset & deletes
+    for item in jobs_path.iterdir():
+        if item.name in excluded_items:
+            continue
+        if item.is_dir():
+            shutil.rmtree(item)
+        else:
+            item.unlink()
+
     logging.info("Dags and jobs deleted.")
-    
+
+
+# =============================================================================
+# Métodos principales para manejo de Spark DAGs
+# =============================================================================
+
+
+def deploy_spark_dags(
+    load_secrets_from_bws: Optional[bool] = None,
+    deployment_file: Optional[str] = None,
+    env: str = DEFAULT_ENV,
+    dags_path: Optional[Path] = None,
+    jobs_path: Optional[Path] = None,
+) -> bool:
+    """
+    Función principal para desplegar DAGs de Airflow y trabajos de Spark.
+
+    Descarga archivos desde CodeArtifact, renderiza los DAGs (si es necesario
+    inyectar variables), y distribuye los archivos a sus rutas correspondientes
+    en la plataforma.
+
+    Args:
+        load_secrets_from_bws (bool, optional): Si cargar secretos desde Bitwarden.
+        deployment_file (str, optional): Ruta al archivo de configuración.
+        env (str): Entorno de despliegue.
+        dags_path (Path, optional): Ruta personalizada para DAGs.
+        jobs_path (Path, optional): Ruta personalizada para jobs.
+
+    Returns:
+        bool: True si el despliegue fue exitoso, False en caso contrario.
+
+    Raises:
+        Exit: Si las rutas de DAG o job no existen o si AWS CLI no está instalado.
+    """
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+
+    # Usar rutas personalizadas o las del config/default
+    dags_path = dags_path or Path(config.get("dags_path", DEFAULT_DAGS_PATH))
+    jobs_path = jobs_path or Path(config.get("jobs_path", DEFAULT_JOBS_PATH))
+
+    # Validar que las rutas existan
+    if not dags_path.exists():
+        logging.error(f"❌ DAGs path does not exist. Path: {dags_path}")
+        raise Exit(code=1)
+    if not jobs_path.exists():
+        logging.error(f"❌ Jobs path does not exist. Path: {jobs_path}")
+        raise Exit(code=1)
+
+    # Verificar que AWS CLI esté instalado
+    if not _ensure_tool_installed("aws", _install_aws_cli):
+        logging.error("❌ AWS CLI installation failed")
+        raise Exit(code=1)
+
+    # Determinar si cargar secretos desde Bitwarden
+    load_secrets = (
+        load_secrets_from_bws
+        if load_secrets_from_bws is not None
+        else config.get(LOAD_SECRETS_FROM_BWS_NAME, True)
+    )
+
+    bws_secrets = {}
+    if load_secrets:
+        # Cargar secretos desde Bitwarden
+        bws_secrets = _load_secrets_from_bws(deployment_file)
+        if not bws_secrets:
+            logging.warning("⚠️ No secrets found in Bitwarden.")
+
+    # Validar configuración de DAGs
+    dags_config = config.get("airflow_dags")
+    if not dags_config:
+        logging.warning(
+            "❌ Airflow DAGs config not found or empty. "
+            "Add DAGs config to 'airflow_dags:' in your deployment.yml"
+        )
+        return False
+
+    # Crear directorio temporal
+    tmp_dir = Path.home() / "spark_jobs"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        # Procesar cada paquete de DAG configurado
+        for package_name, params in dags_config.items():
+            logging.info(f"📦 Processing package: {package_name}")
+            artifact_path = tmp_dir / package_name
+
+            # Descargar desde CodeArtifact
+            _get_zip_from_codeartifact(
+                package_name=package_name,
+                version=params["version"],
+                artifact_path=artifact_path,
+                bws_secrets=bws_secrets,
+                deployment_file=deployment_file,
+            )
+
+            # Descomprimir artefacto
+            _unzip_artifact(artifact_path=artifact_path)
+
+            # Renderizar template de DAG con parámetros
+            _render_dag_template(artifact_path=artifact_path, **params)
+
+            # Desplegar archivos de job y DAG
+            _deploy_job_and_dag_files(
+                artifact_path=artifact_path, dags_path=dags_path, jobs_path=jobs_path
+            )
+
+        logging.info("✅ Spark DAGs deployment completed successfully")
+        return True
+
+    except Exception as e:
+        logging.error(f"❌ Error during DAGs deployment: {e}")
+        return False
+    finally:
+        # Limpiar directorio temporal
+        if tmp_dir.exists():
+            shutil.rmtree(tmp_dir)
+            logging.debug(f"🧹 Cleaned temporary directory: {tmp_dir}")
+
+
+def remove_spark_dags(
+    deployment_file: Optional[str] = None,
+    env: str = DEFAULT_ENV,
+    dags_path: Optional[Path] = None,
+    jobs_path: Optional[Path] = None,
+) -> bool:
+    """
+    Función principal para eliminar archivos de job y DAG y restaurar la estructura de carpetas.
+
+    Args:
+        deployment_file (str, optional): Ruta al archivo de configuración.
+        env (str): Entorno de despliegue.
+        dags_path (Path, optional): Ruta personalizada para DAGs.
+        jobs_path (Path, optional): Ruta personalizada para jobs.
+
+    Returns:
+        bool: True si la eliminación fue exitosa, False en caso contrario.
+
+    Raises:
+        Exit: Si las rutas de DAG o job no existen.
+    """
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+
+    # Usar rutas personalizadas o las del config/default
+    dags_path = dags_path or Path(config.get("dags_path", DEFAULT_DAGS_PATH))
+    jobs_path = jobs_path or Path(config.get("jobs_path", DEFAULT_JOBS_PATH))
+
+    # Validar que las rutas existan
+    if not dags_path.exists():
+        logging.error(f"❌ DAGs path does not exist. Path: {dags_path}")
+        raise Exit(code=1)
+    if not jobs_path.exists():
+        logging.error(f"❌ Jobs path does not exist. Path: {jobs_path}")
+        raise Exit(code=1)
+
+    try:
+        _remove_job_and_dag_files(dags_path=dags_path, jobs_path=jobs_path)
+        logging.info("✅ Spark DAGs removal completed successfully")
+        return True
+    except Exception as e:
+        logging.error(f"❌ Error during DAGs removal: {e}")
+        return False
