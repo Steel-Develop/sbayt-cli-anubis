@@ -215,5 +215,5 @@ def remove_dags(ctx, deployment_file=None, env=DEFAULT_ENV):
 
 
 spark_ns = Collection('spark')
-spark_ns.add_task(deploy_jobs)
-spark_ns.add_task(remove_jobs)
+spark_ns.add_task(deploy_dags)
+spark_ns.add_task(remove_dags)
