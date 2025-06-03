@@ -42,8 +42,8 @@ from pathlib import Path
 from typing import Callable, Dict, Optional, Tuple
 
 import yaml
-from jinja2 import Template
 from invoke.exceptions import Exit
+from jinja2 import Template
 from rich.console import Console
 
 # =============================================================================
@@ -105,6 +105,8 @@ DEFAULT_DAGS_PATH = Path.cwd() / "lakehouse" / "data-management" / "dags"
 DEFAULT_JOBS_PATH = (
     Path.cwd() / "lakehouse" / "data-management" / "map_reduce" / "spark"
 )
+# FQDN configuration
+FQDN_CONFIG = "local"
 
 # =============================================================================
 # Métodos auxiliares para Bitwarden
@@ -906,6 +908,47 @@ def _auto_deploy_dags_if_needed(
         logging.debug("ℹ️ No DAGs configuration found, skipping auto-deployment")
 
 
+def load_fqdn(deployment_file=None):
+    """
+    Loads services FQDN (Fully Qualified Domain Name) as environment variables.
+
+    This function reads the deployment configuration file and sets environment variables
+    for each service's FQDN based on the 'fqdn' key in the config.
+    Args:
+        deployment_file (str, optional): Path to the deployment configuration file.
+                                         Defaults to DEFAULT_DEPLOYMENT_FILE.
+    """
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+    fqdn_file_name = config.get("fqdn_file", FQDN_CONFIG)
+
+    # First try the exact name as configured
+    fqdn_file = Path("fqdn") / fqdn_file_name
+
+    # If not found, try to find files with the same base name but any extension
+    if not fqdn_file.exists():
+        fqdn_dir = Path("fqdn")
+        if fqdn_dir.exists():
+            # Look for files that start with the configured name
+            matching_files = list(fqdn_dir.glob(f"{fqdn_file_name}.*"))
+            if matching_files:
+                fqdn_file = matching_files[0]
+
+    if not fqdn_file.exists():
+        logging.error(
+            f"❌ FQDN configuration file '{fqdn_file}' not found. Please create it."
+        )
+        raise Exit(code=1)
+
+    with open(fqdn_file) as f:
+        for line in f:
+            line = line.strip()
+            # Skip empty lines and comments
+            if not line or line.startswith("#"):
+                continue
+            service, fqdn = line.split(None, 1)
+            os.environ[f"{service.upper()}"] = fqdn
+
+
 def _launch_services(
     ctx,
     profiles,
@@ -965,6 +1008,8 @@ def _launch_services(
     # Get the effective profiles
     profiles_args = _get_profiles_args(profiles, deployment_file)
     env_file = _get_env_file(env)
+    # Load FQDN names as environment variables
+    load_fqdn(deployment_file)
     mode_flag = "-d" if detach else ""
     logging.info(
         f"🔧 Launching services with profiles: {profiles_args} in environment '{env}' "

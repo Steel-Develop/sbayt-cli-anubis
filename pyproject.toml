@@ -6,7 +6,7 @@ build-backend = "pdm.backend"
 [project]
 # Project information
 name = "anubis-cli"
-version = "0.0.8"
+version = "0.0.9"
 authors = [{ name = "Sbayt", email = "info@sbayt.ai" }]
 description = "Sbayt Anubis CLI"
 readme = "README.md"
@@ -19,6 +19,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
 ]
 requires-python = ">=3.9"
 
