@@ -1,4 +1,4 @@
-from invoke import task, Exit, Collection
+from invoke import Collection, Exit, task
 
 from anubis.utils import (
     DEFAULT_ENV,

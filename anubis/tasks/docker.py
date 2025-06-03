@@ -200,9 +200,9 @@ def down(ctx, profiles=None, yes=False, env=DEFAULT_ENV, deployment_file=None):
         invoke down --profiles=api,infra --yes
     """
     from anubis.utils import (
+        DEFAULT_DEPLOYMENT_FILE,
         _get_cached_config,
         remove_spark_dags,
-        DEFAULT_DEPLOYMENT_FILE,
     )
 
     if not _confirm_action("Are you sure you want to stop all containers?", yes=yes):
@@ -215,7 +215,7 @@ def down(ctx, profiles=None, yes=False, env=DEFAULT_ENV, deployment_file=None):
 
     # Check if DAGs should be removed based on configuration
     config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
-    keep_dags_and_jobs = config.get("keep_dags_and_jobs", True)
+    keep_dags_and_jobs = config.get("keep_dags_and_jobs", None)
 
     remove_dags = False
     if not keep_dags_and_jobs:

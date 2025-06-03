@@ -72,7 +72,7 @@ SKIP_ECR_LOGIN_NAME = "skip_ecr_login"
 DEFAULT_COMPOSE_FILE = "docker-compose.yml"
 DOCKER_COMPOSE_CMD = f"docker compose -f {DEFAULT_COMPOSE_FILE}"
 DOCKER_NETWORK = "microservices"
-DEFAULT_ENV_FOLDER_TEMPLATE = "conf/{env}/.env"
+DEFAULT_ENV_FOLDER_TEMPLATE = "configs/environments/{env}/.env"
 
 # BWS
 BWS_VERSION = "0.2.1"
@@ -101,11 +101,19 @@ AWS_ECR_REGISTRY_TEMPLATE = "{account_id}.dkr.ecr.{region}.amazonaws.com"
 UV_CONFIG_FILE = Path.home() / ".config" / "uv" / "uv.toml"
 
 # Spark
-DEFAULT_DAGS_PATH = Path.cwd() / "lakehouse" / "data-management" / "dags"
+DEFAULT_DAGS_PATH = (
+    Path.cwd() / "infrastructure" / "lakehouse" / "data-management" / "dags"
+)
 DEFAULT_JOBS_PATH = (
-    Path.cwd() / "lakehouse" / "data-management" / "map_reduce" / "spark"
+    Path.cwd()
+    / "infrastructure"
+    / "lakehouse"
+    / "data-management"
+    / "map_reduce"
+    / "spark"
 )
 # FQDN configuration
+FQDN_PATH = Path.cwd() / "configs" / "domains"
 FQDN_CONFIG = "local"
 
 # =============================================================================
@@ -858,56 +866,6 @@ def _get_profiles_args(profiles=None, deployment_file=None):
     return " ".join([f"--profile {p.strip()}" for p in profiles.split(",")])
 
 
-def _auto_deploy_dags_if_needed(
-    load_secrets_from_bws: Optional[bool] = None,
-    deployment_file: Optional[str] = None,
-    env: str = DEFAULT_ENV,
-) -> None:
-    """
-    Verifica si los DAGs existen y los despliega automáticamente si no están presentes.
-
-    Args:
-        load_secrets_from_bws (bool, optional): Si cargar secretos desde Bitwarden.
-        deployment_file (str, optional): Ruta al archivo de configuración.
-        env (str): Entorno de despliegue.
-    """
-    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
-
-    # Obtener rutas de DAGs y jobs del config o usar defaults
-    dags_path = Path(config.get("dags_path", DEFAULT_DAGS_PATH))
-    jobs_path = Path(config.get("jobs_path", DEFAULT_JOBS_PATH))
-
-    # Verificar si las rutas existen y están vacías
-    dags_need_deployment = not dags_path.exists() or not any(dags_path.iterdir())
-    jobs_need_deployment = not jobs_path.exists() or not any(jobs_path.iterdir())
-
-    # Verificar si hay configuración de DAGs
-    dags_config = config.get("airflow_dags")
-
-    if (dags_need_deployment or jobs_need_deployment) and dags_config:
-        logging.info("🔍 DAGs or jobs not found, attempting auto-deployment...")
-        try:
-            success = deploy_spark_dags(
-                load_secrets_from_bws=load_secrets_from_bws,
-                deployment_file=deployment_file,
-                env=env,
-                dags_path=dags_path,
-                jobs_path=jobs_path,
-            )
-            if success:
-                logging.info("✅ DAGs auto-deployment completed successfully")
-            else:
-                logging.warning(
-                    "⚠️ DAGs auto-deployment failed, continuing without DAGs"
-                )
-        except Exception as e:
-            logging.warning(
-                f"⚠️ DAGs auto-deployment failed: {e}, continuing without DAGs"
-            )
-    elif not dags_config:
-        logging.debug("ℹ️ No DAGs configuration found, skipping auto-deployment")
-
-
 def load_fqdn(deployment_file=None):
     """
     Loads services FQDN (Fully Qualified Domain Name) as environment variables.
@@ -922,14 +880,13 @@ def load_fqdn(deployment_file=None):
     fqdn_file_name = config.get("fqdn_file", FQDN_CONFIG)
 
     # First try the exact name as configured
-    fqdn_file = Path("fqdn") / fqdn_file_name
+    fqdn_file = FQDN_PATH / fqdn_file_name
 
     # If not found, try to find files with the same base name but any extension
     if not fqdn_file.exists():
-        fqdn_dir = Path("fqdn")
-        if fqdn_dir.exists():
+        if FQDN_PATH.exists():
             # Look for files that start with the configured name
-            matching_files = list(fqdn_dir.glob(f"{fqdn_file_name}.*"))
+            matching_files = list(FQDN_PATH.glob(f"{fqdn_file_name}.*"))
             if matching_files:
                 fqdn_file = matching_files[0]
 
@@ -999,11 +956,23 @@ def _launch_services(
     # Auto-deploy Spark DAGs if enabled and DAGs don't exist
     auto_deploy_dags = config.get("auto_deploy_dags", True)
     if auto_deploy_dags:
-        _auto_deploy_dags_if_needed(
-            load_secrets_from_bws=load_secrets_from_bws,
-            deployment_file=deployment_file,
-            env=env,
-        )
+        try:
+            success = deploy_spark_dags(
+                load_secrets_from_bws=load_secrets_from_bws,
+                deployment_file=deployment_file,
+                env=env,
+                bws_secrets=bws_secrets,
+            )
+            if success:
+                logging.info("✅ DAGs auto-deployment completed successfully")
+            else:
+                logging.warning(
+                    "⚠️ DAGs auto-deployment failed, continuing without DAGs"
+                )
+        except Exception as e:
+            logging.warning(
+                f"⚠️ DAGs auto-deployment failed: {e}, continuing without DAGs"
+            )
 
     # Get the effective profiles
     profiles_args = _get_profiles_args(profiles, deployment_file)
@@ -1611,6 +1580,7 @@ def deploy_spark_dags(
     env: str = DEFAULT_ENV,
     dags_path: Optional[Path] = None,
     jobs_path: Optional[Path] = None,
+    bws_secrets: Optional[dict] = None,
 ) -> bool:
     """
     Función principal para desplegar DAGs de Airflow y trabajos de Spark.
@@ -1623,8 +1593,10 @@ def deploy_spark_dags(
         load_secrets_from_bws (bool, optional): Si cargar secretos desde Bitwarden.
         deployment_file (str, optional): Ruta al archivo de configuración.
         env (str): Entorno de despliegue.
-        dags_path (Path, optional): Ruta personalizada para DAGs.
-        jobs_path (Path, optional): Ruta personalizada para jobs.
+        dags_path (Path, optional): Ruta donde se almacenarán los DAGs.
+        jobs_path (Path, optional): Ruta donde se almacenarán los jobs.
+        bws_secrets (dict, optional): Secretos ya cargados desde Bitwarden.
+                                     Si se proporciona, evita cargarlos nuevamente.
 
     Returns:
         bool: True si el despliegue fue exitoso, False en caso contrario.
@@ -1634,9 +1606,11 @@ def deploy_spark_dags(
     """
     config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
 
-    # Usar rutas personalizadas o las del config/default
-    dags_path = dags_path or Path(config.get("dags_path", DEFAULT_DAGS_PATH))
-    jobs_path = jobs_path or Path(config.get("jobs_path", DEFAULT_JOBS_PATH))
+    # Set default paths if not provided
+    if dags_path is None:
+        dags_path = Path(config.get("dags_path", DEFAULT_DAGS_PATH))
+    if jobs_path is None:
+        jobs_path = Path(config.get("jobs_path", DEFAULT_JOBS_PATH))
 
     # Validar que las rutas existan
     if not dags_path.exists():
@@ -1651,19 +1625,24 @@ def deploy_spark_dags(
         logging.error("❌ AWS CLI installation failed")
         raise Exit(code=1)
 
-    # Determinar si cargar secretos desde Bitwarden
-    load_secrets = (
-        load_secrets_from_bws
-        if load_secrets_from_bws is not None
-        else config.get(LOAD_SECRETS_FROM_BWS_NAME, True)
-    )
+    # Use provided secrets or load from Bitwarden if needed
+    if bws_secrets is None:
+        # Determinar si cargar secretos desde Bitwarden
+        load_secrets = (
+            load_secrets_from_bws
+            if load_secrets_from_bws is not None
+            else config.get(LOAD_SECRETS_FROM_BWS_NAME, True)
+        )
 
-    bws_secrets = {}
-    if load_secrets:
-        # Cargar secretos desde Bitwarden
-        bws_secrets = _load_secrets_from_bws(deployment_file)
-        if not bws_secrets:
-            logging.warning("⚠️ No secrets found in Bitwarden.")
+        bws_secrets = {}
+        if load_secrets:
+            # Cargar secretos desde Bitwarden
+            bws_secrets = _load_secrets_from_bws(deployment_file)
+            if not bws_secrets:
+                logging.warning("⚠️ No secrets found in Bitwarden.")
+    else:
+        # Use the provided secrets
+        logging.debug("🔑 Using pre-loaded secrets from calling context")
 
     # Validar configuración de DAGs
     dags_config = config.get("airflow_dags")
