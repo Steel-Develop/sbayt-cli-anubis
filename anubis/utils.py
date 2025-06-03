@@ -1510,22 +1510,46 @@ def _deploy_job_and_dag_files(
 
     output_job_folder = jobs_path / package
 
+<<<<<<< HEAD
     input_dag_file = artifact_path / "dag.py"
     input_job_file = artifact_path / "job.py"
 
+=======
+    input_dag_file = artifact_path / 'dag.py'
+    input_job_file = artifact_path / 'job.py'
+    input_version_file = artifact_path / 'VERSION'
+    deps_input_zip = artifact_path / 'pyFiles.zip'
+    
+>>>>>>> master
     # Deploy dag
     if output_dag_folder.exists():
         shutil.rmtree(output_dag_folder)
     output_dag_folder.mkdir()
+<<<<<<< HEAD
     shutil.copy(str(input_dag_file), str(output_dag_folder / "dag.py"))
 
+=======
+    shutil.copy(str(input_dag_file), str(output_dag_folder / 'dag.py'))
+    shutil.copy(str(input_version_file), str(output_dag_folder / 'VERSION'))
+    
+>>>>>>> master
     # Deploy job
     if output_job_folder.exists():
         shutil.rmtree(output_job_folder)
     output_job_folder.mkdir()
+<<<<<<< HEAD
     shutil.copy(str(input_job_file), str(output_job_folder / "job.py"))
 
 
+=======
+    shutil.copy(str(input_job_file), str(output_job_folder / 'job.py'))
+    shutil.copy(str(input_version_file), str(output_job_folder / 'VERSION'))
+    
+    if deps_input_zip.exists():
+        shutil.copy(str(deps_input_zip), str(output_job_folder / 'pyFiles.zip'))
+    
+    
+>>>>>>> master
 def _remove_job_and_dag_files(dags_path: Path, jobs_path: Path) -> None:
     """
     Deletion of job and dag files and restoration of the folder structure.

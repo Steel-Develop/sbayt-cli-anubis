@@ -49,6 +49,6 @@ def remove_dags(ctx, deployment_file=None, env=DEFAULT_ENV):
         raise Exit(code=1)
 
 
-spark_ns = Collection("spark")
-spark_ns.add_task(deploy_dags)
-spark_ns.add_task(remove_dags)
+airflow_ns = Collection("airflow")
+airflow_ns.add_task(deploy_dags)
+airflow_ns.add_task(remove_dags)

@@ -72,10 +72,10 @@ def help(ctx):
     )
     
     _print_section(
-        "🧰 Spark Tasks",
+        "🧰 DAGs Tasks",
         [
-            ("spark.deploy-jobs", "Deploy jobs & DAGs configured in deployment.yml"),
-            ("spark.remove-jobs", "Remove-reset jobs $ DAGs from infrastructure")
+            ("airflow.deploy-dags", "Deploy DAGs (and spark jobs associated) configured in deployment.yml"),
+            ("airflow.remove-dags", "Remove-reset DAGs (and spark jobs associated) from infrastructure")
         ],
     )
 
