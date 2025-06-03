@@ -120,13 +120,7 @@ def deploy_dags(ctx, load_secrets_from_bws=None, deployment_file=None,
     if any(line.strip() for line in docker_info.stdout.splitlines()):
         logging.info("Restarting Apache Livy...")
         ctx.run(
-            f'{DOCKER_COMPOSE_CMD} --env-file {env_file} down apache_livy',
-            env={**os.environ, "ENV": env},
-            hide=True,
-            pty=False,
-        )
-        ctx.run(
-            f'{DOCKER_COMPOSE_CMD} --env-file {env_file} up apache_livy -d',
+            f'{DOCKER_COMPOSE_CMD} --env-file {env_file} restart apache_livy',
             env={**os.environ, "ENV": env},
             hide=True,
             pty=False,
@@ -134,17 +128,12 @@ def deploy_dags(ctx, load_secrets_from_bws=None, deployment_file=None,
         
         logging.info("Restarting Airflow Scheduler")
         ctx.run(
-            f'{DOCKER_COMPOSE_CMD} --env-file {env_file} down airflow-scheduler',
+            f'{DOCKER_COMPOSE_CMD} --env-file {env_file} restart airflow-scheduler',
             env={**os.environ, "ENV": env},
             hide=True,
             pty=False,
         )
-        ctx.run(
-            f'{DOCKER_COMPOSE_CMD} --env-file {env_file} up airflow-scheduler -d',
-            env={**os.environ, "ENV": env},
-            hide=True,
-            pty=False,
-        )
+
     
 @task
 def remove_dags(ctx, deployment_file=None, env=DEFAULT_ENV):
@@ -186,32 +175,20 @@ def remove_dags(ctx, deployment_file=None, env=DEFAULT_ENV):
     if any(line.strip() for line in docker_info.stdout.splitlines()):
         logging.info("Restarting Apache Livy...")
         ctx.run(
-            f'{DOCKER_COMPOSE_CMD} --env-file {env_file} down apache_livy',
+            f'{DOCKER_COMPOSE_CMD} --env-file {env_file} restart apache_livy',
             env={**os.environ, "ENV": env},
             hide=True,
             pty=False,
         )
-        ctx.run(
-            f'{DOCKER_COMPOSE_CMD} --env-file {env_file} up apache_livy -d',
-            env={**os.environ, "ENV": env},
-            hide=True,
-            pty=False,
-        )
+
         
         logging.info("Restarting Airflow Scheduler")
         ctx.run(
-            f'{DOCKER_COMPOSE_CMD} --env-file {env_file} down airflow-scheduler',
+            f'{DOCKER_COMPOSE_CMD} --env-file {env_file} restart airflow-scheduler',
             env={**os.environ, "ENV": env},
             hide=True,
             pty=False,
         )
-        ctx.run(
-            f'{DOCKER_COMPOSE_CMD} --env-file {env_file} up airflow-scheduler -d',
-            env={**os.environ, "ENV": env},
-            hide=True,
-            pty=False,
-        )
-        
 
 
 airflow_ns = Collection('airflow')
