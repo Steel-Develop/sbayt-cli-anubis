@@ -162,7 +162,7 @@ Para crear un nuevo paquete en desarrollo, sigue los siguientes pasos:
    Mueve la carpeta `dist` al directorio raíz del proyecto y ejecuta el siguiente comando:
 
    ```bash
-   uv tool install --from dist/anubis_cli-0.0.1-py3-none-any.whl anubis-cli
+   uv tool install --from dist/anubis_cli-{version}-py3-none-any.whl anubis-cli
 
    ```
 
