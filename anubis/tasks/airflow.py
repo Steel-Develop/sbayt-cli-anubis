@@ -1,10 +1,6 @@
 from invoke import Collection, Exit, task
 
-from anubis.utils import (
-    DEFAULT_ENV,
-    deploy_spark_dags,
-    remove_spark_dags,
-)
+from anubis.utils import DEFAULT_ENV, deploy_spark_dags, remove_spark_dags
 
 
 @task

@@ -70,12 +70,18 @@ def help(ctx):
             ),
         ],
     )
-    
+
     _print_section(
         "🧰 DAGs Tasks",
         [
-            ("airflow.deploy-dags", "Deploy DAGs (and spark jobs associated) configured in deployment.yml"),
-            ("airflow.remove-dags", "Remove-reset DAGs (and spark jobs associated) from infrastructure")
+            (
+                "airflow.deploy-dags",
+                "Deploy DAGs (and spark jobs associated) configured in deployment.yml",
+            ),
+            (
+                "airflow.remove-dags",
+                "Remove-reset DAGs (and spark jobs associated) from infrastructure",
+            ),
         ],
     )
 

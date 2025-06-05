@@ -2,14 +2,7 @@ import importlib.metadata
 
 from invoke import Collection, Program
 
-from anubis.tasks import (
-    aws,
-    bitwarden,
-    check,
-    docker,
-    misc,
-    airflow
-)
+from anubis.tasks import airflow, aws, bitwarden, check, docker, misc
 
 ns = Collection()
 ns.add_collection(aws.aws_ns)

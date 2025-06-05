@@ -1475,7 +1475,7 @@ def _render_dag_template(artifact_path: Path, **kwargs) -> None:
         )
         return None
 
-    with open(dag_template_path, "r") as fin:
+    with open(dag_template_path) as fin:
         dag_str = fin.read()
 
     dag_template = Template(dag_str)
