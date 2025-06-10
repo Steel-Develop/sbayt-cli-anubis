@@ -218,7 +218,7 @@ def down(ctx, profiles=None, yes=False, env=DEFAULT_ENV, deployment_file=None):
     keep_dags_and_jobs = config.get("keep_dags_and_jobs", None)
 
     remove_dags = False
-    if not keep_dags_and_jobs:
+    if keep_dags_and_jobs is None:
         remove_dags = _confirm_action(
             "Do you want to remove Spark DAGs and jobs?", yes=yes
         )
