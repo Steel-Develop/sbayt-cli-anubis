@@ -208,13 +208,15 @@ def down(ctx, profiles=None, yes=False, env=DEFAULT_ENV, deployment_file=None):
     if not _confirm_action("Are you sure you want to stop all containers?", yes=yes):
         logging.info("Operation aborted by user.")
         return
-    remove_volumes = _confirm_action("Do you also want to remove volumes?", yes=yes)
+    remove_volumes = _confirm_action(
+        "Do you also want to remove volumes?", yes=yes)
     remove_orphans = _confirm_action(
         "Do you want to remove orphan containers?", yes=yes
     )
 
     # Check if DAGs should be removed based on configuration
-    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+    config = _get_cached_config(
+        path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
     keep_dags_and_jobs = config.get("keep_dags_and_jobs", None)
 
     remove_dags = False
@@ -241,7 +243,8 @@ def down(ctx, profiles=None, yes=False, env=DEFAULT_ENV, deployment_file=None):
     if remove_dags:
         logging.info("🗑️ Removing Spark DAGs and jobs...")
         try:
-            success = remove_spark_dags(deployment_file=deployment_file, env=env)
+            success = remove_spark_dags(
+                deployment_file=deployment_file, env=env)
             if success:
                 logging.info("✅ Spark DAGs and jobs removed successfully")
             else:
@@ -267,7 +270,7 @@ def restart(
     deployment_file=None,
 ):
     """
-    Restarts services by stopping them (`down`) and then starting them again (`up`).
+    Restarts services by stopping them (`down`) and then starting them again (`up_daemon`).
 
     Args:
         ctx: Invoke context.
@@ -289,11 +292,11 @@ def restart(
         profiles=profiles,
         yes=yes,
         env=env,
-        load_secrets_from_bws=load_secrets_from_bws,
-        skip_ecr_login=skip_ecr_login,
+        # load_secrets_from_bws=load_secrets_from_bws,
+        # skip_ecr_login=skip_ecr_login,
         deployment_file=deployment_file,
     )
-    up(
+    up_daemon(
         ctx,
         profiles=profiles,
         env=env,
