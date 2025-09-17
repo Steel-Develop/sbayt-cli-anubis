@@ -15,7 +15,7 @@
 
 ---
 
-📖 Leer en otros idiomas:  
+📖 Leer en otros idiomas:
 - [English](./README.md)
 
 ---
@@ -162,7 +162,7 @@ uv export --no-hashes -o requirements.txt
    uv build
    ```
 
-2. Se creará la carpeta `dist`con el paquete y su _wheel_.
+2. Se creará la carpeta `dist` con el paquete y su _wheel_.
 
 3. Instala el paquete en tu entorno virtual en otro proyecto:
 

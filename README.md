@@ -15,14 +15,14 @@
 
 ---
 
-📖 Read this in other languages:  
+📖 Read this in other languages:
 - [Español](./README.es.md)
 
 ---
 
 ## Description
 
-This tool defines and organizes a set of automated tasks to configure and manage development/production environments.  
+This tool defines and organizes a set of automated tasks to configure and manage development/production environments.
 It uses `invoke` to structure tasks and `rich` to enhance the terminal experience.
 
 ### Main Features
@@ -54,13 +54,13 @@ pipx install anubis-cli
 
 ### Basic Usage
 
-   1. View available tasks:  
+   1. View available tasks:
       `anubis help`
-   2. Check your local environment:  
+   2. Check your local environment:
       `anubis check.environment`
-   3. Start Docker services with specific profiles:  
+   3. Start Docker services with specific profiles:
       `anubis docker.up --profiles=infra,api --env=prod`
-   4. Configure pip for CodeArtifact:  
+   4. Configure pip for CodeArtifact:
       `anubis aws.configure-pip`
 
 Enable autocompletion for `anubis`:
@@ -77,7 +77,7 @@ echo "source ~/.anubis-completion.zsh" >> ~/.zshrc
 source ~/.zshrc
 ```
 
-For more details or additional examples, check each task’s documentation using  
+For more details or additional examples, check each task’s documentation using
 `anubis --list` or review the individual docstrings.
 
 ---
@@ -86,7 +86,7 @@ For more details or additional examples, check each task’s documentation using
 
 ### Requirements
 
-- [Python](https://www.python.org/downloads/) >= 3.9  
+- [Python](https://www.python.org/downloads/) >= 3.9
 - [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) >= 0.7.0
 
 ### Setup
@@ -125,7 +125,7 @@ For more details or additional examples, check each task’s documentation using
 
 ## Dependency Management
 
-Using `uv` as package manager, you can easily handle project dependencies.  
+Using `uv` as package manager, you can easily handle project dependencies.
 When a dependency is installed, it is stored in `uv.lock` to reproduce the environment elsewhere, and added to `pyproject.toml`.
 
 - Install or update a dependency:
@@ -163,7 +163,7 @@ uv export --no-hashes -o requirements.txt
    uv build
    ```
 
-2. A `dist` folder will be created with the package and its wheel.  
+2. A `dist` folder will be created with the package and its wheel.
 
 3. Install the package in another project’s virtual environment:
 
@@ -181,22 +181,22 @@ Running the [CI.yml](.github/workflows/CI.yml) workflow will deploy the package 
 
 ## GitHub Actions
 
-The [ci.yml](.github/workflows/ci.yml) workflow runs on every push to the master branch.  
+The [ci.yml](.github/workflows/ci.yml) workflow runs on every push to the master branch.
 It includes the following jobs:
 
 ### fetch
 Checks out the source code from the repository.
 
 ### lint
-- Checkout source code.  
-- Setup Python.  
-- Setup `uv`.  
-- Sync dependencies using `uv`.  
-- Verify installed packages.  
-- Run pre-commit hooks to ensure code quality.  
+- Checkout source code.
+- Setup Python.
+- Setup `uv`.
+- Sync dependencies using `uv`.
+- Verify installed packages.
+- Run pre-commit hooks to ensure code quality.
 
 ### test
-Runs a matrix strategy with Python 3.10, 3.11, and 3.12.  
+Runs a matrix strategy with Python 3.10, 3.11, and 3.12.
 Executes unit and integration tests with `pytest`.
 
 ### scan
@@ -241,7 +241,7 @@ uv run pytest -m integration
 Please read the [Contribution Guide](https://github.com/Steel-Develop/sbayt-internal-agreements/blob/master/CONTRIBUTING.md).
 
 ### Reporting Issues
-Report defects via [Jira](https://steeldevelop.atlassian.net/).  
+Report defects via [Jira](https://steeldevelop.atlassian.net/).
 If unsure whether it’s a bug, discuss it in our forums or internal chat.
 
 ---
