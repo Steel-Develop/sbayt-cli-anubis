@@ -15,273 +15,236 @@
 
 ---
 
-## Descripción
+📖 Read this in other languages:  
+- [Español](./README.es.md)
 
-Esta herramienta define y organiza un conjunto de tareas automatizadas para configurar y
-gestionar entornos de desarrollo/producción. Utiliza `invoke` para estructurar las tareas
-y `rich` para mejorar la experiencia en terminal.
+---
 
-### Características principales
+## Description
 
-- Instalación local y gestión de herramientas CLI esenciales (AWS CLI, Bitwarden CLI).
-- Configuración de repositorios privados (CodeArtifact) para pip y uv.
-- Automatización de servicios Docker (crear red, iniciar, detener, limpiar, construir).
-- Verificación de configuraciones de seguridad y entorno local (Bitwarden, AWS ECR, etc.).
+This tool defines and organizes a set of automated tasks to configure and manage development/production environments.  
+It uses `invoke` to structure tasks and `rich` to enhance the terminal experience.
 
-### Instalación global
+### Main Features
 
-Para instalar la herramienta de forma global, puedes utilizar `uv`(**recomendado**) o `pipx`.
+- Local installation and management of essential CLI tools (AWS CLI, Bitwarden CLI).
+- Configuration of private repositories (CodeArtifact) for pip and uv.
+- Docker service automation (create network, start, stop, clean, build).
+- Verification of security configurations and local environment (Bitwarden, AWS ECR, etc.).
+
+### Global Installation
+
+To install the tool globally, you can use `uv` (**recommended**) or `pipx`.
 
 ```bash
-# Con uv (recomendado)
+# With uv (recommended)
 uv tool install anubis-cli
 ```
 
 ```bash
-# Con pipx
+# With pipx
 pipx install anubis-cli
 ```
 
-### Requisitos
+### Requirements
 
-- Python 3.9 o superior.
-- [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) para instalar herramientas globalmente.
-- Un archivo de despliegue (local o global, por defecto: deployment.yml) para definir perfiles y credenciales.
+- Python 3.9 or higher.
+- [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) to install global tools.
+- A deployment file (local or global, default: deployment.yml) to define profiles and credentials.
 
-### Uso básico
+### Basic Usage
 
-   1. Ver tareas disponibles:
-        `anubis help`
-   2. Verificar tu entorno local:
-        `anubis check.environment`
-   3. Iniciar servicios Docker con perfiles específicos:
-        `anubis docker.up --profiles=infra,api --env=prod`
-   4. Configurar pip para CodeArtifact:
-        `anubis aws.configure-pip`
+   1. View available tasks:  
+      `anubis help`
+   2. Check your local environment:  
+      `anubis check.environment`
+   3. Start Docker services with specific profiles:  
+      `anubis docker.up --profiles=infra,api --env=prod`
+   4. Configure pip for CodeArtifact:  
+      `anubis aws.configure-pip`
 
-Configurar autocompletado para `anubis`:
+Enable autocompletion for `anubis`:
 
 ```bash
-# Para bash
+# For bash
 anubis --print-completion-script bash > ~/.anubis-completion.bash
 echo "source ~/.anubis-completion.bash" >> ~/.bashrc
 source ~/.bashrc
-# Para zsh
+
+# For zsh
 anubis --print-completion-script zsh > ~/.anubis-completion.zsh
 echo "source ~/.anubis-completion.zsh" >> ~/.zshrc
 source ~/.zshrc
 ```
 
-Para más detalles o ejemplos adicionales, consulta la documentación de cada tarea
-usando el comando `anubis --list` o revisa los docstrings individuales.
+For more details or additional examples, check each task’s documentation using  
+`anubis --list` or review the individual docstrings.
 
-## Configuración del Entorno de Desarrollo
+---
 
-A continuación se indica cómo preparar el entorno de desarrollo.
+## Development Environment Setup
 
-### Requisitos
+### Requirements
 
-- [Python](https://www.python.org/downloads/) >= 3.9
+- [Python](https://www.python.org/downloads/) >= 3.9  
 - [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) >= 0.7.0
 
-### Configuración
+### Setup
 
-1. Crea el entorno virtual:
+1. Create the virtual environment:
 
    ```bash
    uv sync
    ```
 
-2. Comprobar que el entorno virtual se ha creado correctamente:
+2. Verify the virtual environment was created correctly:
 
    ```bash
    uv pip check
    uv tree
    ```
 
-3. Utiliza el entorno virtual:
+3. Use the virtual environment:
 
-   Al utilizar `uv` como gestor de paquetes, podemos utilizar el entorno de varias maneras:
+   With `uv` as package manager, you can use the environment in two ways:
 
-   - (**Recomendado**) Utilizar el comando `un run <comando>` para ejecutar comandos dentro del entorno virtual:
+   - (**Recommended**) Run commands inside the virtual environment with `uv run <command>`:
 
      ```bash
      uv run anubis
      uv run pytest -m unit
      ```
 
-   - Activar el entorno virtual:
+   - Activate the virtual environment:
 
      ```bash
-        source .venv/bin/activate
+     source .venv/bin/activate
      ```
 
-### Manejo de Dependencias
+---
 
-Al utilizar `uv` como gestor de paquetes, podemos manejar las dependencias de nuestro proyecto de manera sencilla. Cuando se instala una dependencia, se guarda en el archivo `uv.lock` para que se pueda reproducir el entorno en otro lugar, además de añadirlo al archivo `pyproject.toml` en su sección correspondiente.
+## Dependency Management
 
-Para instalar nuevas dependencias o actualizar una existente, simplemente ejecuta el siguiente comando:
+Using `uv` as package manager, you can easily handle project dependencies.  
+When a dependency is installed, it is stored in `uv.lock` to reproduce the environment elsewhere, and added to `pyproject.toml`.
+
+- Install or update a dependency:
 
 ```bash
 uv add <package>
 ```
 
-Para añadir las dependencias de desarrollo, ejecuta el siguiente comando:
+- Add development dependencies:
 
 ```bash
 uv add --dev <package>
 ```
 
-Para eliminar una dependencia, ejecuta el siguiente comando:
+- Remove a dependency:
 
 ```bash
 uv remove <package>
 uv remove --dev <package>
 ```
 
-También se pueden exportar las dependencias a un archivo `requirements.txt`:
+- Export dependencies to `requirements.txt`:
 
 ```bash
 uv export --no-hashes -o requirements.txt
 ```
 
-## Creación de un nuevo paquete
+---
 
-Para crear un nuevo paquete en desarrollo, sigue los siguientes pasos:
+## Creating a New Package
 
-1. Ejecuta el siguiente comando para crear un nuevo paquete:
+1. Build the package:
 
    ```bash
    uv build
    ```
 
-2. Se creará la carpeta `dist`con el paquete y su _wheel_.
+2. A `dist` folder will be created with the package and its wheel.  
 
-3. Instala el paquete en tu entorno virtual en otro proyecto:
-
-   Mueve la carpeta `dist` al directorio raíz del proyecto y ejecuta el siguiente comando:
+3. Install the package in another project’s virtual environment:
 
    ```bash
    uv tool install --from dist/anubis_cli-{version}-py3-none-any.whl anubis-cli
-
    ```
 
-## Despliegue del Paquete
+---
 
-Al ejecutar el _workflow_ [CI.yml](.github/workflows/CI.yml), se desplegará el paquete en **PyPI**.
+## Package Deployment
+
+Running the [CI.yml](.github/workflows/CI.yml) workflow will deploy the package to **PyPI**.
+
+---
 
 ## GitHub Actions
 
-El archivo [ci.yml](.github/workflows/ci.yml) contiene un flujo de trabajo que se ejecuta en cada push a la rama master. Este flujo de trabajo consta de los siguientes trabajos:
+The [ci.yml](.github/workflows/ci.yml) workflow runs on every push to the master branch.  
+It includes the following jobs:
 
 ### fetch
-
-Realiza la acción de checkout del código fuente desde el repositorio.
+Checks out the source code from the repository.
 
 ### lint
-
-Realiza las siguientes acciones:
-
-- Checkout del código fuente.
-- Configura Python utilizando la acción setup-python.
-- Configura `uv`.
-- Sincroniza las dependencias utilizando `uv`.
-- Verifica los paquetes instalados.
-- Ejecuta los hooks de pre-commit para asegurar la calidad del código.
+- Checkout source code.  
+- Setup Python.  
+- Setup `uv`.  
+- Sync dependencies using `uv`.  
+- Verify installed packages.  
+- Run pre-commit hooks to ensure code quality.  
 
 ### test
-
-Utiliza una estrategia de matriz para probar en múltiples versiones de Python (3.10, 3.11, 3.12).
-
-Realiza las siguientes acciones:
-
-- Checkout del código fuente.
-- Configura Python utilizando la acción setup-python.
-- Configura `uv`.
-- Sincroniza las dependencias utilizando `uv`.
-- Ejecuta las pruebas unitarias utilizando `pytest`.
-- Ejecuta las pruebas de integración utilizando `pytest`.
+Runs a matrix strategy with Python 3.10, 3.11, and 3.12.  
+Executes unit and integration tests with `pytest`.
 
 ### scan
-
-Realiza las siguientes acciones:
-
-- Checkout del código fuente.
-- Ejecuta el escáner de vulnerabilidades **Trivy** en modo repositorio para buscar vulnerabilidades críticas y altas en el código, secretos y configuraciones.
+Runs **Trivy** vulnerability scanner in repository mode, checking for critical and high vulnerabilities, secrets, and misconfigurations.
 
 ### publish
+Builds and publishes the package to **PyPI**.
 
-Realiza las siguientes acciones:
+---
 
-- Checkout del código fuente.
-- Configura Python utilizando la acción setup-python.
-- Configura `uv`.
-- Construye y publica el paquete a **PyPI**.
+## Running Tests
 
-## Ejecución de los Tests
-
-Si deseas ejecutar todos los tests (unitarios y de integración) en el directorio tests, simplemente puedes ejecutar `pytest` sin especificar un directorio:
+To run all tests (unit + integration):
 
 ```bash
 uv run pytest
 ```
 
-Esto ejecutará todos los tests que `pytest` pueda encontrar en el directorio actual y sus subdirectorios.
-
-### Ejecución de Tests Unitarios
-
-Para ejecutar solo los tests unitarios, que estarían organizados en el directorio `tests/unit`:
+To run only unit tests:
 
 ```bash
 uv run pytest tests/unit
 ```
 
-Esto ejecutará todos los tests unitarios que se encuentren en ese directorio y sus subdirectorios.
-
-También puedes especificar un archivo específico si solo deseas ejecutar los tests de un archivo particular:
-
-```bash
-uv run pytest tests/unit/test_module1.py
-```
-
-### Ejecución de Tests de Integración
-
-Para ejecutar solo los tests de integración, que estarían organizados en el directorio `tests/integration`:
+To run only integration tests:
 
 ```bash
 uv run pytest tests/integration
 ```
 
-Esto ejecutará todos los tests de integración que se encuentren en ese directorio y sus subdirectorios.
-
-Al igual que con los tests unitarios, puedes especificar un archivo específico si solo deseas ejecutar los tests de un archivo particular:
+You can also use markers/tags:
 
 ```bash
-uv run pytest tests/integration/test_integration_module1.py
+uv run pytest -m unit
+uv run pytest -m integration
 ```
 
-### Marcadores o Tags
-
-Además, `pytest` permite usar marcadores o tags para categorizar tus tests y ejecutar solo aquellos marcados con un cierto `tag`.
-
-Esto es útil si quieres ejecutar un grupo específico de tests independientemente de su ubicación en el directorio.
-
-Por ejemplo, si tienes marcadores como `@pytest.mark.unit` y `@pytest.mark.integration`, puedes ejecutar solo los tests marcados como unitarios o de integración de esta manera:
-
-```bash
-uv run pytest -m unit  # Ejecuta solo tests marcados como unit
-uv run pytest -m integration  # Ejecuta solo tests marcados como integration
-```
+---
 
 ## Contributing
 
-For a complete guide on how to contribute to the project, please review the [Contribution Guide](https://github.com/Steel-Develop/sbayt-internal-agreements/blob/master/CONTRIBUTING.md).
+Please read the [Contribution Guide](https://github.com/Steel-Develop/sbayt-internal-agreements/blob/master/CONTRIBUTING.md).
 
 ### Reporting Issues
+Report defects via [Jira](https://steeldevelop.atlassian.net/).  
+If unsure whether it’s a bug, discuss it in our forums or internal chat.
 
-If you believe you've found a defect in this project or its documentation, open an issue in [Jira](https://steeldevelop.atlassian.net/) so we can address it.
-
-If you're unsure whether it's a bug, feel free to discuss it in our forums or internal chat—someone will be happy to help.
+---
 
 ## Code of Conduct
 
