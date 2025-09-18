@@ -1,10 +1,10 @@
 version = 1
 revision = 2
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [[package]]
 name = "anubis-cli"
-version = "0.0.12"
+version = "0.0.13"
 source = { editable = "." }
 dependencies = [
     { name = "invoke" },
@@ -99,10 +99,6 @@ wheels = [
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/black/24.10.0/black-24.10.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:1f93102e0c5bb3907451063e08b9876dbeac810e7da5a8bfb7aeb5a9ef89066b" },
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/black/24.10.0/black-24.10.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ddacb691cdcdf77b96f549cf9591701d8db36b2f19519373d60d31746068dbf2" },
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/black/24.10.0/black-24.10.0-cp313-cp313-win_amd64.whl", hash = "sha256:680359d932801c76d2e9c9068d05c6b107f2584b2a5b88831c83962eb9984c1b" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/black/24.10.0/black-24.10.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:17374989640fbca88b6a448129cd1745c5eb8d9547b464f281b251dd00155ccd" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/black/24.10.0/black-24.10.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:63f626344343083322233f175aaf372d326de8436f5928c042639a4afbbf1d3f" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/black/24.10.0/black-24.10.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:ccfa1d0cb6200857f1923b602f978386a3a2758a65b52e0950299ea014be6800" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/black/24.10.0/black-24.10.0-cp39-cp39-win_amd64.whl", hash = "sha256:2cd9c95431d94adc56600710f8813ee27eea544dd118d45896bb734e9d7a0dc7" },
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/black/24.10.0/black-24.10.0-py3-none-any.whl", hash = "sha256:3bb2b7a1f7b685f85b11fed1ef10f8a9148bceb49853e47a294a3dd963c1dd7d" },
 ]
 
@@ -192,16 +188,6 @@ wheels = [
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/coverage/7.8.0/coverage-7.8.0-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:f3c38e4e5ccbdc9198aecc766cedbb134b2d89bf64533973678dfcf07effd883" },
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/coverage/7.8.0/coverage-7.8.0-cp313-cp313t-win32.whl", hash = "sha256:379fe315e206b14e21db5240f89dc0774bdd3e25c3c58c2c733c99eca96f1ada" },
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/coverage/7.8.0/coverage-7.8.0-cp313-cp313t-win_amd64.whl", hash = "sha256:2e4b6b87bb0c846a9315e3ab4be2d52fac905100565f4b92f02c445c8799e257" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/coverage/7.8.0/coverage-7.8.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:fa260de59dfb143af06dcf30c2be0b200bed2a73737a8a59248fcb9fa601ef0f" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/coverage/7.8.0/coverage-7.8.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:96121edfa4c2dfdda409877ea8608dd01de816a4dc4a0523356067b305e4e17a" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/coverage/7.8.0/coverage-7.8.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:6b8af63b9afa1031c0ef05b217faa598f3069148eeee6bb24b79da9012423b82" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/coverage/7.8.0/coverage-7.8.0-cp39-cp39-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:89b1f4af0d4afe495cd4787a68e00f30f1d15939f550e869de90a86efa7e0814" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/coverage/7.8.0/coverage-7.8.0-cp39-cp39-manylinux_2_5_x86_64.manylinux1_x86_64.manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:94ec0be97723ae72d63d3aa41961a0b9a6f5a53ff599813c324548d18e3b9e8c" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/coverage/7.8.0/coverage-7.8.0-cp39-cp39-musllinux_1_2_aarch64.whl", hash = "sha256:8a1d96e780bdb2d0cbb297325711701f7c0b6f89199a57f2049e90064c29f6bd" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/coverage/7.8.0/coverage-7.8.0-cp39-cp39-musllinux_1_2_i686.whl", hash = "sha256:f1d8a2a57b47142b10374902777e798784abf400a004b14f1b0b9eaf1e528ba4" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/coverage/7.8.0/coverage-7.8.0-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "sha256:cf60dd2696b457b710dd40bf17ad269d5f5457b96442f7f85722bdb16fa6c899" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/coverage/7.8.0/coverage-7.8.0-cp39-cp39-win32.whl", hash = "sha256:be945402e03de47ba1872cd5236395e0f4ad635526185a930735f66710e1bd3f" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/coverage/7.8.0/coverage-7.8.0-cp39-cp39-win_amd64.whl", hash = "sha256:90e7fbc6216ecaffa5a880cdc9c77b7418c1dcb166166b78dbc630d07f278cc3" },
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/coverage/7.8.0/coverage-7.8.0-pp39.pp310.pp311-none-any.whl", hash = "sha256:b8194fb8e50d556d5849753de991d390c5a1edeeba50f68e3a9253fbd8bf8ccd" },
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/coverage/7.8.0/coverage-7.8.0-py3-none-any.whl", hash = "sha256:dbf364b4c5e7bae9250528167dfe40219b62e2d573c854d74be213e1e52069f7" },
 ]
@@ -380,16 +366,6 @@ wheels = [
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/markupsafe/3.0.2/MarkupSafe-3.0.2-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:131a3c7689c85f5ad20f9f6fb1b866f402c445b220c19fe4308c0b147ccd2ad9" },
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/markupsafe/3.0.2/MarkupSafe-3.0.2-cp313-cp313t-win32.whl", hash = "sha256:ba8062ed2cf21c07a9e295d5b8a2a5ce678b913b45fdf68c32d95d6c1291e0b6" },
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/markupsafe/3.0.2/MarkupSafe-3.0.2-cp313-cp313t-win_amd64.whl", hash = "sha256:e444a31f8db13eb18ada366ab3cf45fd4b31e4db1236a4448f68778c1d1a5a2f" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/markupsafe/3.0.2/MarkupSafe-3.0.2-cp39-cp39-macosx_10_9_universal2.whl", hash = "sha256:eaa0a10b7f72326f1372a713e73c3f739b524b3af41feb43e4921cb529f5929a" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/markupsafe/3.0.2/MarkupSafe-3.0.2-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:48032821bbdf20f5799ff537c7ac3d1fba0ba032cfc06194faffa8cda8b560ff" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/markupsafe/3.0.2/MarkupSafe-3.0.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:1a9d3f5f0901fdec14d8d2f66ef7d035f2157240a433441719ac9a3fba440b13" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/markupsafe/3.0.2/MarkupSafe-3.0.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:88b49a3b9ff31e19998750c38e030fc7bb937398b1f78cfa599aaef92d693144" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/markupsafe/3.0.2/MarkupSafe-3.0.2-cp39-cp39-manylinux_2_5_i686.manylinux1_i686.manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:cfad01eed2c2e0c01fd0ecd2ef42c492f7f93902e39a42fc9ee1692961443a29" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/markupsafe/3.0.2/MarkupSafe-3.0.2-cp39-cp39-musllinux_1_2_aarch64.whl", hash = "sha256:1225beacc926f536dc82e45f8a4d68502949dc67eea90eab715dea3a21c1b5f0" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/markupsafe/3.0.2/MarkupSafe-3.0.2-cp39-cp39-musllinux_1_2_i686.whl", hash = "sha256:3169b1eefae027567d1ce6ee7cae382c57fe26e82775f460f0b2778beaad66c0" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/markupsafe/3.0.2/MarkupSafe-3.0.2-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "sha256:eb7972a85c54febfb25b5c4b4f3af4dcc731994c7da0d8a0b4a6eb0640e1d178" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/markupsafe/3.0.2/MarkupSafe-3.0.2-cp39-cp39-win32.whl", hash = "sha256:8c4e8c3ce11e1f92f6536ff07154f9d49677ebaaafc32db9db4620bc11ed480f" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/markupsafe/3.0.2/MarkupSafe-3.0.2-cp39-cp39-win_amd64.whl", hash = "sha256:6e296a513ca3d94054c2c881cc913116e90fd030ad1c656b3869762b754f5f8a" },
 ]
 
 [[package]]
@@ -445,12 +421,6 @@ wheels = [
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/mypy/1.15.0/mypy-1.15.0-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:c43a7682e24b4f576d93072216bf56eeff70d9140241f9edec0c104d0c515036" },
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/mypy/1.15.0/mypy-1.15.0-cp313-cp313-musllinux_1_2_x86_64.whl", hash = "sha256:baefc32840a9f00babd83251560e0ae1573e2f9d1b067719479bfb0e987c6357" },
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/mypy/1.15.0/mypy-1.15.0-cp313-cp313-win_amd64.whl", hash = "sha256:b9378e2c00146c44793c98b8d5a61039a048e31f429fb0eb546d93f4b000bedf" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/mypy/1.15.0/mypy-1.15.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:e601a7fa172c2131bff456bb3ee08a88360760d0d2f8cbd7a75a65497e2df078" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/mypy/1.15.0/mypy-1.15.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:712e962a6357634fef20412699a3655c610110e01cdaa6180acec7fc9f8513ba" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/mypy/1.15.0/mypy-1.15.0-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:f95579473af29ab73a10bada2f9722856792a36ec5af5399b653aa28360290a5" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/mypy/1.15.0/mypy-1.15.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:8f8722560a14cde92fdb1e31597760dc35f9f5524cce17836c0d22841830fd5b" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/mypy/1.15.0/mypy-1.15.0-cp39-cp39-musllinux_1_2_x86_64.whl", hash = "sha256:1fbb8da62dc352133d7d7ca90ed2fb0e9d42bb1a32724c287d3c76c58cbaa9c2" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/mypy/1.15.0/mypy-1.15.0-cp39-cp39-win_amd64.whl", hash = "sha256:d10d994b41fb3497719bbf866f227b3489048ea4bbbb5015357db306249f7980" },
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/mypy/1.15.0/mypy-1.15.0-py3-none-any.whl", hash = "sha256:5469affef548bd1895d86d3bf10ce2b44e33d86923c29e4d675b3e323437ea3e" },
 ]
 
@@ -687,15 +657,6 @@ wheels = [
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/pyyaml/6.0.2/PyYAML-6.0.2-cp313-cp313-musllinux_1_1_x86_64.whl", hash = "sha256:68ccc6023a3400877818152ad9a1033e3db8625d899c72eacb5a668902e4d652" },
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/pyyaml/6.0.2/PyYAML-6.0.2-cp313-cp313-win32.whl", hash = "sha256:bc2fa7c6b47d6bc618dd7fb02ef6fdedb1090ec036abab80d4681424b84c1183" },
     { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/pyyaml/6.0.2/PyYAML-6.0.2-cp313-cp313-win_amd64.whl", hash = "sha256:8388ee1976c416731879ac16da0aff3f63b286ffdd57cdeb95f3f2e085687563" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/pyyaml/6.0.2/PyYAML-6.0.2-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:688ba32a1cffef67fd2e9398a2efebaea461578b0923624778664cc1c914db5d" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/pyyaml/6.0.2/PyYAML-6.0.2-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:a8786accb172bd8afb8be14490a16625cbc387036876ab6ba70912730faf8e1f" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/pyyaml/6.0.2/PyYAML-6.0.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d8e03406cac8513435335dbab54c0d385e4a49e4945d2909a581c83647ca0290" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/pyyaml/6.0.2/PyYAML-6.0.2-cp39-cp39-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:f753120cb8181e736c57ef7636e83f31b9c0d1722c516f7e86cf15b7aa57ff12" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/pyyaml/6.0.2/PyYAML-6.0.2-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3b1fdb9dc17f5a7677423d508ab4f243a726dea51fa5e70992e59a7411c89d19" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/pyyaml/6.0.2/PyYAML-6.0.2-cp39-cp39-musllinux_1_1_aarch64.whl", hash = "sha256:0b69e4ce7a131fe56b7e4d770c67429700908fc0752af059838b1cfb41960e4e" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/pyyaml/6.0.2/PyYAML-6.0.2-cp39-cp39-musllinux_1_1_x86_64.whl", hash = "sha256:a9f8c2e67970f13b16084e04f134610fd1d374bf477b17ec1599185cf611d725" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/pyyaml/6.0.2/PyYAML-6.0.2-cp39-cp39-win32.whl", hash = "sha256:6395c297d42274772abc367baaa79683958044e5d3835486c16da75d2a694631" },
-    { url = "https://sbayt-865413084983.d.codeartifact.eu-west-1.amazonaws.com/pypi/python-sbayt-repository/simple/pyyaml/6.0.2/PyYAML-6.0.2-cp39-cp39-win_amd64.whl", hash = "sha256:39693e1f8320ae4f43943590b49779ffb98acb81f788220ea932a6b6c51004d8" },
 ]
 
 [[package]]

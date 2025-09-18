@@ -76,7 +76,7 @@ anubis docker.up --profiles=infra,api --env=prod
 ```
 
  4. Configurar pip para CodeArtifact:
- 
+
 ```bash
 anubis aws.configure-pip
 ```

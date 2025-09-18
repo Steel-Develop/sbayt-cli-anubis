@@ -57,25 +57,25 @@ pipx install anubis-cli
 ### Basic Usage
 
  1. View available tasks:
-   
+
 ```bash
 anubis help
 ```
 
  2. Check your local environment:
-   
+
 ```bash
 anubis check.environment
 ```
 
  3. Start Docker services with specific profiles:
-   
+
 ```bash
 anubis docker.up --profiles=infra,api --env=prod
 ```
 
  4. Configure pip for CodeArtifact:
-   
+
 ```bash
 anubis aws.configure-pip
 ```

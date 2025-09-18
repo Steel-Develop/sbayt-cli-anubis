@@ -7,8 +7,8 @@ PR Template – v1.1.0
 
 ## Changelog Description
 <!--
-Provide a short, clear summary of the key change(s) introduced in this PR.  
-Use a single line or a short bullet list if needed.  
+Provide a short, clear summary of the key change(s) introduced in this PR.
+Use a single line or a short bullet list if needed.
 Place them inside the below triple backticks section:
 -->
 ```markdown changelog
@@ -44,8 +44,8 @@ Include details to reproduce the tests if necessary.
 
 Does this PR introduce changes that require a DB migration or environment/infrastructure update?
 
-- [ ] 👍 Yes  
-- [ ] 🙅 No  
+- [ ] 👍 Yes
+- [ ] 🙅 No
 
 If yes, describe the required steps below.
 
@@ -56,9 +56,9 @@ If yes, describe the required steps below.
 
 Does this PR introduce any known side effects, breaking changes, or could it impact other areas of the system?
 
-- [ ] 👍 Yes  
-- [ ] 🙅 No  
-- [ ] 🆘 I don't know, I need help  
+- [ ] 👍 Yes
+- [ ] 🙅 No
+- [ ] 🆘 I don't know, I need help
 
 🚨 If you're not sure, you must raise it in the next Agile ceremony.
 
