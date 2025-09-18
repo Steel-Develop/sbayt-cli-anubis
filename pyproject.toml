@@ -16,12 +16,11 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 packages = [
     { include = "anubis" }
@@ -72,7 +71,7 @@ anubis = "anubis.main:program.run"
 # URLs del proyecto
 Documentation = "https://github.com/Steel-Develop/sbayt-cli-anubis/tree/master#readme"
 Homepage = "https://github.com/Steel-Develop/sbayt-cli-anubis"
-Issues = "https://github.com/Steel-Develop/sbayt-cli-anubis/issues"
+Issues = "https://steeldevelop.atlassian.net/"
 
 # Tools
 # =============================================================================
