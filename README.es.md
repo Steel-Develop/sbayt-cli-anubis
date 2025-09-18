@@ -29,9 +29,17 @@ y `rich` para mejorar la experiencia en terminal.
 ### Características principales
 
 - Instalación local y gestión de herramientas CLI esenciales (AWS CLI, Bitwarden CLI).
-- Configuración de repositorios privados (CodeArtifact) para pip y uv.
-- Automatización de servicios Docker (crear red, iniciar, detener, limpiar, construir).
+- Configuración de repositorios privados (CodeArtifact) para `pip` y `uv`.
+- Automatización de servicios Docker (`create network`, `start`, `stop`, `clean`, `build`).
 - Verificación de configuraciones de seguridad y entorno local (Bitwarden, AWS ECR, etc.).
+
+## Instalación y Uso Básico
+
+### Requisitos
+
+- [Python](https://www.python.org/downloads/) >= 3.10
+- [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) >= 0.7.0
+- Un archivo de despliegue (local o global, por defecto: deployment.yml) para definir perfiles y credenciales.
 
 ### Instalación global
 
@@ -47,22 +55,32 @@ uv tool install anubis-cli
 pipx install anubis-cli
 ```
 
-### Requisitos
-
-- Python 3.9 o superior.
-- [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) para instalar herramientas globalmente.
-- Un archivo de despliegue (local o global, por defecto: deployment.yml) para definir perfiles y credenciales.
-
 ### Uso básico
 
-   1. Ver tareas disponibles:
-        `anubis help`
-   2. Verificar tu entorno local:
-        `anubis check.environment`
-   3. Iniciar servicios Docker con perfiles específicos:
-        `anubis docker.up --profiles=infra,api --env=prod`
-   4. Configurar pip para CodeArtifact:
-        `anubis aws.configure-pip`
+ 1. Ver tareas disponibles:
+
+```bash
+anubis help
+```
+
+ 2. Verificar tu entorno local:
+
+```bash
+anubis check.environment
+```
+
+ 3. Iniciar servicios Docker con perfiles específicos:
+
+```bash
+anubis docker.up --profiles=infra,api --env=prod
+```
+
+ 4. Configurar pip para CodeArtifact:
+ 
+```bash
+anubis aws.configure-pip
+```
+
 
 Configurar autocompletado para `anubis`:
 
@@ -71,6 +89,7 @@ Configurar autocompletado para `anubis`:
 anubis --print-completion-script bash > ~/.anubis-completion.bash
 echo "source ~/.anubis-completion.bash" >> ~/.bashrc
 source ~/.bashrc
+
 # Para zsh
 anubis --print-completion-script zsh > ~/.anubis-completion.zsh
 echo "source ~/.anubis-completion.zsh" >> ~/.zshrc
@@ -80,29 +99,27 @@ source ~/.zshrc
 Para más detalles o ejemplos adicionales, consulta la documentación de cada tarea
 usando el comando `anubis --list` o revisa los docstrings individuales.
 
----
-
 ## Configuración del Entorno de Desarrollo
 
 ### Requisitos
 
-- [Python](https://www.python.org/downloads/) >= 3.9
+- [Python](https://www.python.org/downloads/) >= 3.10
 - [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) >= 0.7.0
 
 ### Configuración
 
 1. Crea el entorno virtual:
 
-   ```bash
-   uv sync
-   ```
+```bash
+uv sync
+```
 
 2. Comprobar que el entorno virtual se ha creado correctamente:
 
-   ```bash
-   uv pip check
-   uv tree
-   ```
+```bash
+uv pip check
+uv tree
+```
 
 3. Utiliza el entorno virtual:
 
@@ -110,146 +127,76 @@ usando el comando `anubis --list` o revisa los docstrings individuales.
 
    - (**Recomendado**) Utilizar el comando `uv run <comando>` para ejecutar comandos dentro del entorno virtual:
 
-     ```bash
-     uv run anubis
-     uv run pytest -m unit
-     ```
+```bash
+uv run anubis
+uv run pytest -m unit
+```
 
    - Activar el entorno virtual:
 
-     ```bash
-        source .venv/bin/activate
-     ```
-
----
+```bash
+   source .venv/bin/activate
+```
 
 ## Manejo de Dependencias
 
 Al utilizar `uv` como gestor de paquetes, podemos manejar las dependencias de nuestro proyecto de manera sencilla. Cuando se instala una dependencia, se guarda en el archivo `uv.lock` para que se pueda reproducir el entorno en otro lugar, además de añadirlo al archivo `pyproject.toml` en su sección correspondiente.
 
-Para instalar nuevas dependencias o actualizar una existente, simplemente ejecuta el siguiente comando:
+- Para instalar nuevas dependencias o actualizar una existente, simplemente ejecuta el siguiente comando:
 
 ```bash
 uv add <package>
 ```
 
-Para añadir las dependencias de desarrollo, ejecuta el siguiente comando:
+- Para añadir las dependencias de desarrollo, ejecuta el siguiente comando:
 
 ```bash
 uv add --dev <package>
 ```
 
-Para eliminar una dependencia, ejecuta el siguiente comando:
+- Para eliminar una dependencia, ejecuta el siguiente comando:
 
 ```bash
 uv remove <package>
 uv remove --dev <package>
 ```
 
-También se pueden exportar las dependencias a un archivo `requirements.txt`:
+- También se pueden exportar las dependencias a un archivo `requirements.txt`:
 
 ```bash
 uv export --no-hashes -o requirements.txt
 ```
 
----
-
 ## Creación de un nuevo paquete
 
 1. Ejecuta el siguiente comando para crear un nuevo paquete:
 
-   ```bash
-   uv build
-   ```
+```bash
+uv build
+```
 
 2. Se creará la carpeta `dist` con el paquete y su _wheel_.
 
 3. Instala el paquete en tu entorno virtual en otro proyecto:
 
-   ```bash
-   uv tool install --from dist/anubis_cli-{version}-py3-none-any.whl anubis-cli
-   ```
-
----
-
-## Despliegue del Paquete
-
-Al ejecutar el _workflow_ [CI.yml](.github/workflows/CI.yml), se desplegará el paquete en **PyPI**.
-
----
-
-## GitHub Actions
-
-El archivo [ci.yml](.github/workflows/ci.yml) contiene un flujo de trabajo que se ejecuta en cada push a la rama master. Este flujo de trabajo consta de los siguientes trabajos:
-
-### fetch
-
-Realiza la acción de checkout del código fuente desde el repositorio.
-
-### lint
-
-Realiza las siguientes acciones:
-
-- Checkout del código fuente.
-- Configura Python utilizando la acción setup-python.
-- Configura `uv`.
-- Sincroniza las dependencias utilizando `uv`.
-- Verifica los paquetes instalados.
-- Ejecuta los hooks de pre-commit para asegurar la calidad del código.
-
-### test
-
-Utiliza una estrategia de matriz para probar en múltiples versiones de Python (3.10, 3.11, 3.12).
-
-### scan
-
-Ejecuta el escáner de vulnerabilidades **Trivy** en modo repositorio para buscar vulnerabilidades críticas y altas en el código, secretos y configuraciones.
-
-### publish
-
-Construye y publica el paquete a **PyPI**.
-
----
-
-## Ejecución de los Tests
-
-- Todos los tests:
-
 ```bash
-uv run pytest
+uv tool install --from dist/anubis_cli-{version}-py3-none-any.whl anubis-cli
 ```
 
-- Tests unitarios:
+## Cómo Contribuir
 
-```bash
-uv run pytest tests/unit
-```
+Para una guía completa sobre cómo contribuir al proyecto, revisa la [Contribution Guide](https://github.com/Steel-Develop/sbayt-internal-agreements/blob/master/CONTRIBUTING.md).
 
-- Tests de integración:
+### Reportar Incidencias
 
-```bash
-uv run pytest tests/integration
-```
+If you believe you've found a defect in this project or its documentation, open an issue in [Jira](https://steeldevelop.atlassian.net/) so we can address it.
 
-- Con marcadores/tags:
-
-```bash
-uv run pytest -m unit
-uv run pytest -m integration
-```
-
----
-
-## Contribución
-
-Para una guía completa de cómo contribuir, revisa la [Guía de Contribución](https://github.com/Steel-Develop/sbayt-internal-agreements/blob/master/CONTRIBUTING.md).
-
-### Reporte de Problemas
-
-Si encuentras un defecto en este proyecto o su documentación, abre un issue en [Jira](https://steeldevelop.atlassian.net/).
-
----
+If you're unsure whether it's a bug, feel free to discuss it in our forums or internal chat—someone will be happy to help.
 
 ## Código de Conducta
 
 Consulta el [Código de Conducta](https://github.com/Steel-Develop/sbayt-internal-agreements/blob/master/code-of-conduct.md).
+
+## Licencia
+
+Consulta el archivo [LICENSE](./LICENSE).

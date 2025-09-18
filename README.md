@@ -28,9 +28,17 @@ It uses `invoke` to structure tasks and `rich` to enhance the terminal experienc
 ### Main Features
 
 - Local installation and management of essential CLI tools (AWS CLI, Bitwarden CLI).
-- Configuration of private repositories (CodeArtifact) for pip and uv.
-- Docker service automation (create network, start, stop, clean, build).
+- Configuration of private repositories (CodeArtifact) for `pip` and `uv`.
+- Docker service automation (`create network`, `start`, `stop`, `clean`, `build`).
 - Verification of security configurations and local environment (Bitwarden, AWS ECR, etc.).
+
+## Installation & Basic Usage
+
+### Requirements
+
+- [Python](https://www.python.org/downloads/) >= 3.10
+- [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) >= 0.7.0
+- A deployment file (local or global, default: `deployment.yml`) to define profiles and credentials.
 
 ### Global Installation
 
@@ -46,22 +54,31 @@ uv tool install anubis-cli
 pipx install anubis-cli
 ```
 
-### Requirements
-
-- Python 3.9 or higher.
-- [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) to install global tools.
-- A deployment file (local or global, default: deployment.yml) to define profiles and credentials.
-
 ### Basic Usage
 
-   1. View available tasks:
-      `anubis help`
-   2. Check your local environment:
-      `anubis check.environment`
-   3. Start Docker services with specific profiles:
-      `anubis docker.up --profiles=infra,api --env=prod`
-   4. Configure pip for CodeArtifact:
-      `anubis aws.configure-pip`
+ 1. View available tasks:
+   
+```bash
+anubis help
+```
+
+ 2. Check your local environment:
+   
+```bash
+anubis check.environment
+```
+
+ 3. Start Docker services with specific profiles:
+   
+```bash
+anubis docker.up --profiles=infra,api --env=prod
+```
+
+ 4. Configure pip for CodeArtifact:
+   
+```bash
+anubis aws.configure-pip
+```
 
 Enable autocompletion for `anubis`:
 
@@ -80,29 +97,27 @@ source ~/.zshrc
 For more details or additional examples, check each task’s documentation using
 `anubis --list` or review the individual docstrings.
 
----
-
 ## Development Environment Setup
 
 ### Requirements
 
-- [Python](https://www.python.org/downloads/) >= 3.9
+- [Python](https://www.python.org/downloads/) >= 3.10
 - [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) >= 0.7.0
 
 ### Setup
 
 1. Create the virtual environment:
 
-   ```bash
-   uv sync
-   ```
+```bash
+uv sync
+```
 
 2. Verify the virtual environment was created correctly:
 
-   ```bash
-   uv pip check
-   uv tree
-   ```
+```bash
+uv pip check
+uv tree
+```
 
 3. Use the virtual environment:
 
@@ -110,18 +125,16 @@ For more details or additional examples, check each task’s documentation using
 
    - (**Recommended**) Run commands inside the virtual environment with `uv run <command>`:
 
-     ```bash
-     uv run anubis
-     uv run pytest -m unit
-     ```
+```bash
+uv run anubis
+uv run pytest -m unit
+```
 
    - Activate the virtual environment:
 
-     ```bash
-     source .venv/bin/activate
-     ```
-
----
+```bash
+source .venv/bin/activate
+```
 
 ## Dependency Management
 
@@ -153,99 +166,36 @@ uv remove --dev <package>
 uv export --no-hashes -o requirements.txt
 ```
 
----
-
 ## Creating a New Package
 
 1. Build the package:
 
-   ```bash
-   uv build
-   ```
+```bash
+uv build
+```
 
 2. A `dist` folder will be created with the package and its wheel.
 
 3. Install the package in another project’s virtual environment:
 
-   ```bash
-   uv tool install --from dist/anubis_cli-{version}-py3-none-any.whl anubis-cli
-   ```
-
----
-
-## Package Deployment
-
-Running the [CI.yml](.github/workflows/CI.yml) workflow will deploy the package to **PyPI**.
-
----
-
-## GitHub Actions
-
-The [ci.yml](.github/workflows/ci.yml) workflow runs on every push to the master branch.
-It includes the following jobs:
-
-### fetch
-Checks out the source code from the repository.
-
-### lint
-- Checkout source code.
-- Setup Python.
-- Setup `uv`.
-- Sync dependencies using `uv`.
-- Verify installed packages.
-- Run pre-commit hooks to ensure code quality.
-
-### test
-Runs a matrix strategy with Python 3.10, 3.11, and 3.12.
-Executes unit and integration tests with `pytest`.
-
-### scan
-Runs **Trivy** vulnerability scanner in repository mode, checking for critical and high vulnerabilities, secrets, and misconfigurations.
-
-### publish
-Builds and publishes the package to **PyPI**.
-
----
-
-## Running Tests
-
-To run all tests (unit + integration):
-
 ```bash
-uv run pytest
+uv tool install --from dist/anubis_cli-{version}-py3-none-any.whl anubis-cli
 ```
-
-To run only unit tests:
-
-```bash
-uv run pytest tests/unit
-```
-
-To run only integration tests:
-
-```bash
-uv run pytest tests/integration
-```
-
-You can also use markers/tags:
-
-```bash
-uv run pytest -m unit
-uv run pytest -m integration
-```
-
----
 
 ## Contributing
 
-Please read the [Contribution Guide](https://github.com/Steel-Develop/sbayt-internal-agreements/blob/master/CONTRIBUTING.md).
+For a complete guide on how to contribute to the project, please review the [Contribution Guide](https://github.com/Steel-Develop/sbayt-internal-agreements/blob/master/CONTRIBUTING.md).
 
 ### Reporting Issues
-Report defects via [Jira](https://steeldevelop.atlassian.net/).
-If unsure whether it’s a bug, discuss it in our forums or internal chat.
 
----
+If you believe you've found a defect in this project or its documentation, open an issue in [Jira](https://steeldevelop.atlassian.net/) so we can address it.
+
+If you're unsure whether it's a bug, feel free to discuss it in our forums or internal chat—someone will be happy to help.
 
 ## Code of Conduct
 
 See the [Code of Conduct](https://github.com/Steel-Develop/sbayt-internal-agreements/blob/master/code-of-conduct.md).
+
+## License
+
+See the [LICENSE](./LICENSE) file.
