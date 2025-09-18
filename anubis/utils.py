@@ -117,7 +117,7 @@ FQDN_PATH = Path.cwd() / "configs" / "domains"
 FQDN_CONFIG = "local"
 
 # =============================================================================
-# Métodos auxiliares para Bitwarden
+# Aux methods for Bitwarden
 # =============================================================================
 
 
@@ -317,7 +317,7 @@ def _load_secrets_from_bws(deployment_file=None) -> dict:
 
 
 # =============================================================================
-# Métodos auxiliares para AWS
+# Aux methods for AWS
 # =============================================================================
 
 
@@ -648,7 +648,7 @@ def _get_codeartifact_token(
 
 
 # =============================================================================
-# Métodos generales
+# General methods
 # =============================================================================
 
 
@@ -1342,7 +1342,7 @@ def _install_deployment_as_global(source_path=DEFAULT_DEPLOYMENT_FILE):
 
 
 # =============================================================================
-# Métodos auxiliares para Spark Jobs
+# Aux methods for Spark Jobs
 # =============================================================================
 
 
@@ -1577,7 +1577,7 @@ def _remove_job_and_dag_files(dags_path: Path, jobs_path: Path) -> None:
 
 
 # =============================================================================
-# Métodos principales para manejo de Spark DAGs
+# Main methods for Spark DAGs
 # =============================================================================
 
 
