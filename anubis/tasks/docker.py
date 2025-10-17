@@ -1,5 +1,4 @@
 import logging
-import os
 from pathlib import Path
 
 from invoke import Collection, task
@@ -12,6 +11,7 @@ from anubis.utils import (
     _get_env_file,
     _get_profiles_args,
     _launch_services,
+    _prepare_compose_env,
 )
 
 
@@ -231,9 +231,10 @@ def down(ctx, profiles=None, yes=False, env=DEFAULT_ENV, deployment_file=None):
     if remove_orphans:
         options += " --remove-orphans"
     env_file = _get_env_file(env)
+    compose_env = _prepare_compose_env(env=env)
     ctx.run(
         f"{DOCKER_COMPOSE_CMD} --env-file {env_file} {_get_profiles_args(profiles, deployment_file)} down{options}",
-        env={**os.environ, "ENV": env},
+        env=compose_env,
         pty=True,
     )
 
@@ -319,8 +320,10 @@ def ps(ctx, profiles=None, env=DEFAULT_ENV, deployment_file=None):
         invoke ps --profiles=infra
     """
     env_file = _get_env_file(env)
+    compose_env = _prepare_compose_env(env=env)
     ctx.run(
         f"{DOCKER_COMPOSE_CMD} --env-file {env_file} {_get_profiles_args(profiles, deployment_file)} ps",
+        env=compose_env,
         pty=True,
     )
 
@@ -350,8 +353,7 @@ def logs(ctx, service=None, follow=True, tail=250, env=DEFAULT_ENV):
         cmd += f" {service}"
 
     # Build ephemeral environment by loading .env file plus OS environment
-    env_vars = os.environ.copy()
-    env_vars["ENV"] = env
+    env_vars = _prepare_compose_env(env=env)
     env_file_path = _get_env_file(env)
     if Path(env_file_path).exists():
         with open(env_file_path) as f:
@@ -379,8 +381,10 @@ def build(ctx, profiles=None, env=DEFAULT_ENV, deployment_file=None):
         invoke build --profiles=api
     """
     env_file = _get_env_file(env)
+    compose_env = _prepare_compose_env(env=env)
     ctx.run(
         f"{DOCKER_COMPOSE_CMD} --env-file {env_file} {_get_profiles_args(profiles, deployment_file)} build",
+        env=compose_env,
         pty=True,
     )
 

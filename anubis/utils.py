@@ -698,6 +698,51 @@ def _build_env(env: Optional[str] = None, extra_vars: Optional[dict] = None) -> 
     return base_env
 
 
+def _host_user_env() -> dict:
+    """Resolve host UID/GID variables ensuring compose commands inherit writable permissions."""
+
+    def _safe_getattr(name: str, fallback: str) -> str:
+        resolver = getattr(os, name, None)
+        if callable(resolver):
+            try:
+                return str(resolver())
+            except OSError:
+                return fallback
+        return fallback
+
+    resolved: Dict[str, str] = {}
+
+    uid = os.environ.get("HOST_UID") or _safe_getattr("getuid", "1000")
+    gid = os.environ.get("HOST_GID") or _safe_getattr("getgid", "1000")
+
+    resolved.setdefault("HOST_UID", uid)
+    resolved.setdefault("HOST_GID", gid)
+
+    if "AIRFLOW_UID" not in os.environ:
+        resolved["AIRFLOW_UID"] = uid
+    if "AIRFLOW_GID" not in os.environ:
+        resolved["AIRFLOW_GID"] = os.environ.get("AIRFLOW_GID", "0")
+
+    return resolved
+
+
+def _prepare_compose_env(
+    env: str,
+    extra_vars: Optional[Dict[str, str]] = None,
+    bws_secrets: Optional[Dict[str, str]] = None,
+) -> dict:
+    """Build merged environment for docker compose commands with host UID mapping."""
+
+    merged_env = os.environ.copy()
+    merged_env.update(_host_user_env())
+    if bws_secrets:
+        merged_env.update(bws_secrets)
+    if extra_vars:
+        merged_env.update(extra_vars)
+    merged_env["ENV"] = env
+    return merged_env
+
+
 def _confirm_action(message, yes=False):
     """
     Confirms a potentially dangerous action with the user.
@@ -985,12 +1030,11 @@ def _launch_services(
         f"{'(detached)' if detach else '(interactive)'}..."
     )
 
-    # Merge secrets with OS environment only in memory for the subprocess
-    full_env = {**os.environ, **bws_secrets, "ENV": env}
+    compose_env = _prepare_compose_env(env=env, bws_secrets=bws_secrets)
 
     ctx.run(
         f"{DOCKER_COMPOSE_CMD} --env-file {env_file} {profiles_args} up {mode_flag}".strip(),
-        env=full_env,
+        env=compose_env,
         pty=True,
     )
 
