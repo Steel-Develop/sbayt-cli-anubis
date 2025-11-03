@@ -264,6 +264,81 @@ def _ensure_bws_token(deployment_file=None):
         return None
 
 
+def _parse_bws_secrets(stdout: str) -> dict:
+    """
+    Parses and validates BWS CLI JSON output.
+
+    Args:
+        stdout (str): Raw stdout from BWS CLI.
+
+    Returns:
+        dict: Dictionary of secrets {key: value}.
+    """
+    if not stdout.strip():
+        logging.warning("⚠️ BWS returned empty response")
+        return {}
+
+    try:
+        parsed_output = json.loads(stdout)
+    except json.JSONDecodeError as e:
+        logging.error(f"❌ Failed to parse BWS JSON: {e}")
+        logging.debug(f"Output: {stdout[:200]}")
+        return {}
+
+    # Check if it's an error response
+    if isinstance(parsed_output, dict) and parsed_output.get("object") == "error":
+        logging.warning(f"⚠️ BWS error: {parsed_output.get('message', 'Unknown error')}")
+        return {}
+
+    # Validate it's a list
+    if not isinstance(parsed_output, list):
+        logging.error(
+            f"❌ Unexpected BWS response type: {type(parsed_output).__name__}"
+        )
+        return {}
+
+    secrets_list = parsed_output
+
+    # Extract secrets
+    secrets_dict = {}
+    for secret in secrets_list:
+        if isinstance(secret, dict):
+            key = secret.get("key")
+            value = secret.get("value")
+            if key and value:
+                secrets_dict[key] = value
+
+    if secrets_dict:
+        logging.info(f"✅ Loaded {len(secrets_dict)} secrets from Bitwarden")
+    else:
+        logging.warning("⚠️ No secrets found in Bitwarden")
+
+    return secrets_dict
+
+
+def _execute_bws_command(bws_path: str, bws_token: str) -> subprocess.CompletedProcess:
+    """
+    Executes BWS CLI command to list secrets.
+
+    Args:
+        bws_path (str): Path to BWS CLI binary.
+        bws_token (str): BWS access token.
+
+    Returns:
+        subprocess.CompletedProcess: Result of the subprocess execution.
+
+    Raises:
+        subprocess.TimeoutExpired: If command exceeds 30s timeout.
+    """
+    return subprocess.run(  # nosec B603
+        [bws_path, "list", "secrets", "--access-token", bws_token],
+        capture_output=True,
+        text=True,
+        timeout=30,
+        env=_build_env(),
+    )
+
+
 def _load_secrets_from_bws(deployment_file=None) -> dict:
     """
     Loads secrets from the Bitwarden CLI (`bws`) using a valid access token.
@@ -284,36 +359,35 @@ def _load_secrets_from_bws(deployment_file=None) -> dict:
     """
     bws_token = _ensure_bws_token(deployment_file)
     if not bws_token:
+        logging.warning("⚠️ No BWS token provided. Skipping secrets loading.")
         return {}
 
     if not _ensure_tool_installed("bws", _install_bws_cli):
+        logging.error("❌ BWS CLI not available. Skipping secrets loading.")
+        return {}
+
+    bws_path = shutil.which("bws")
+    if bws_path is None:
+        logging.error("❌ Bitwarden CLI (bws) not found in PATH after installation.")
         return {}
 
     try:
-        bws_path = shutil.which("bws")
-        if bws_path is None:
-            logging.error("❌ Bitwarden CLI (bws) not found. Please install it first.")
-            return {}
-        result = subprocess.run(  # nosec B603
-            [bws_path, "list", "secrets", "--access-token", bws_token],
-            capture_output=True,
-            text=True,
-            env=_build_env(),
-        )
-        secrets_list = json.loads(result.stdout)
-        secrets_dict = {}
-        for secret in secrets_list:
-            key = secret.get("key")
-            value = secret.get("value")
-            if key and value:
-                secrets_dict[key] = value
-        return secrets_dict
-    except subprocess.CalledProcessError as e:
-        logging.error(f"Failed to retrieve secrets from Bitwarden: {e.stderr}")
-    except json.JSONDecodeError:
-        logging.error("Failed to parse secrets JSON from Bitwarden output.")
+        result = _execute_bws_command(bws_path, bws_token)
 
-    return {}
+        if result.returncode != 0:
+            error_msg = result.stderr.strip() or result.stdout.strip()
+            logging.error(f"❌ BWS CLI error: {error_msg}")
+            return {}
+
+        return _parse_bws_secrets(result.stdout)
+
+    except subprocess.TimeoutExpired:
+        logging.error("⏱️ BWS CLI timeout")
+        return {}
+
+    except Exception as e:
+        logging.error(f"❌ Error loading secrets: {type(e).__name__}: {e}")
+        return {}
 
 
 # =============================================================================
@@ -990,7 +1064,7 @@ def _launch_services(
         # Load secrets from Bitwarden
         bws_secrets = _load_secrets_from_bws(deployment_file)
         if not bws_secrets:
-            logging.warning("⚠️ No secrets found in Bitwarden. Skipping ECR login.")
+            raise Exit(code=1)
 
     if not skip_login:
         # Secrets may come from env vars even if Bitwarden is disabled

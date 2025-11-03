@@ -228,6 +228,9 @@ def create_ca_env_file(ctx, deployment_file=None):
     output_path.mkdir(parents=True, exist_ok=True)
 
     bws_secrets = _load_secrets_from_bws(deployment_file)
+    if not bws_secrets:
+        raise Exit(code=1)
+
     token = _get_codeartifact_token(bws_secrets, deployment_file)
 
     if not token:
@@ -262,6 +265,9 @@ def export_ca_token_env_var(ctx, deployment_file=None):
     logging.info("🔐 Exporting CODEARTIFACT_AUTH_TOKEN...")
 
     bws_secrets = _load_secrets_from_bws(deployment_file)
+    if not bws_secrets:
+        raise Exit(code=1)
+
     token = _get_codeartifact_token(bws_secrets, deployment_file)
 
     if not token:
