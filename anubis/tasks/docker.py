@@ -8,6 +8,7 @@ from anubis.utils import (
     DOCKER_COMPOSE_CMD,
     DOCKER_NETWORK,
     _confirm_action,
+    _get_env,
     _get_env_file,
     _get_profiles_args,
     _launch_services,
@@ -213,6 +214,9 @@ def down(ctx, profiles=None, yes=False, env=DEFAULT_ENV, deployment_file=None):
         "Do you want to remove orphan containers?", yes=yes
     )
 
+    # Get effective environment from config
+    env = _get_env(env=env, deployment_file=deployment_file)
+
     # Check if DAGs should be removed based on configuration
     config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
     keep_dags_and_jobs = config.get("keep_dags_and_jobs", None)
@@ -319,6 +323,7 @@ def ps(ctx, profiles=None, env=DEFAULT_ENV, deployment_file=None):
         invoke ps
         invoke ps --profiles=infra
     """
+    env = _get_env(env=env, deployment_file=deployment_file)
     env_file = _get_env_file(env)
     compose_env = _prepare_compose_env(env=env)
     ctx.run(
@@ -380,6 +385,7 @@ def build(ctx, profiles=None, env=DEFAULT_ENV, deployment_file=None):
         invoke build
         invoke build --profiles=api
     """
+    env = _get_env(env=env, deployment_file=deployment_file)
     env_file = _get_env_file(env)
     compose_env = _prepare_compose_env(env=env)
     ctx.run(

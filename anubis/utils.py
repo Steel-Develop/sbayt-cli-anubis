@@ -985,6 +985,31 @@ def _get_profiles_args(profiles=None, deployment_file=None):
     return " ".join([f"--profile {p.strip()}" for p in profiles.split(",")])
 
 
+def _get_env(env=None, deployment_file=None):
+    """
+    Gets the effective environment name from parameter or deployment config.
+
+    Args:
+        env (str, optional): Environment name. If provided, it takes precedence.
+        deployment_file (str, optional): Path to deployment config file.
+
+    Returns:
+        str: Environment name (e.g., 'dev', 'prod').
+
+    Example:
+        >>> _get_env(env="prod")
+        'prod'
+        >>> _get_env(deployment_file="deployment.yml")  # with environment: "staging" in file
+        'staging'
+        >>> _get_env()  # no parameter, no config
+        'dev'
+    """
+    if env and env != DEFAULT_ENV:
+        return env
+    config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+    return config.get("environment", DEFAULT_ENV)
+
+
 def load_fqdn(deployment_file=None):
     """
     Loads services FQDN (Fully Qualified Domain Name) as environment variables.
@@ -1052,6 +1077,10 @@ def _launch_services(
         None
     """
     config = _get_cached_config(path=deployment_file or DEFAULT_DEPLOYMENT_FILE)
+
+    # Get effective environment from config if not explicitly provided
+    env = _get_env(env=env, deployment_file=deployment_file)
+
     load_secrets = (
         load_secrets_from_bws
         if load_secrets_from_bws is not None
