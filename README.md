@@ -1,201 +1,120 @@
-<h1 align="center">𓁢 Anubis CLI</h1>
+# Anubis CLI
 
-<p align="center">
-    <em>Automated Network & User Base Installation Service</em>
-</p>
+Anubis provides a small command-line interface for local developer tooling and
+Kubernetes infrastructure operations. It delegates to the native tools and
+does not replace Terraform, Ansible, Helmfile or kubectl.
 
-<p align="center">
-<a href="https://pypi.org/project/anubis-cli" target="_blank">
-    <img src="https://img.shields.io/pypi/v/anubis-cli?color=%2334D058&label=pypi%20package" alt="Package version">
-</a>
-<a href="https://pypi.org/project/anubis-cli" target="_blank">
-    <img src="https://img.shields.io/pypi/pyversions/anubis-cli.svg?color=%2334D058" alt="Supported Python versions">
-</a>
-</p>
+[Leer en español](README.es.md)
 
----
+## Installation
 
-📖 Read this in other languages:
-- [Español](./README.es.md)
-
----
-
-## Description
-
-This tool defines and organizes a set of automated tasks to configure and manage development/production environments.
-It uses `invoke` to structure tasks and `rich` to enhance the terminal experience.
-
-### Main Features
-
-- Local installation and management of essential CLI tools (AWS CLI, Bitwarden CLI).
-- Configuration of private repositories (CodeArtifact) for `pip` and `uv`.
-- Docker service automation (`create network`, `start`, `stop`, `clean`, `build`).
-- Verification of security configurations and local environment (Bitwarden, AWS ECR, etc.).
-
-## Installation & Basic Usage
-
-### Requirements
-
-- [Python](https://www.python.org/downloads/) >= 3.10
-- [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) >= 0.7.0
-- A deployment file (local or global, default: `deployment.yml`) to define profiles and credentials.
-
-### Global Installation
-
-To install the tool globally, you can use `uv` (**recommended**) or `pipx`.
+Anubis requires Python 3.12 or newer. Install the public package with either:
 
 ```bash
-# With uv (recommended)
 uv tool install anubis-cli
-```
-
-```bash
-# With pipx
+# or
 pipx install anubis-cli
 ```
 
-### Basic Usage
+Run `anubis --help` to inspect the available commands.
 
- 1. View available tasks:
-
-```bash
-anubis help
-```
-
- 2. Check your local environment:
+Enable shell completion once after installation:
 
 ```bash
-anubis check.environment
-```
-
- 3. Start Docker services with specific profiles:
-
-```bash
-anubis docker.up --profiles=infra,api --env=prod
-```
-
- 4. Configure pip for CodeArtifact:
-
-```bash
-anubis aws.configure-pip
-```
-
-Enable autocompletion for `anubis`:
-
-```bash
-# For bash
-anubis --print-completion-script bash > ~/.anubis-completion.bash
-echo "source ~/.anubis-completion.bash" >> ~/.bashrc
-source ~/.bashrc
-
-# For zsh
+# zsh
 anubis --print-completion-script zsh > ~/.anubis-completion.zsh
-echo "source ~/.anubis-completion.zsh" >> ~/.zshrc
-source ~/.zshrc
+echo 'source ~/.anubis-completion.zsh' >> ~/.zshrc
+
+# bash
+anubis --print-completion-script bash > ~/.anubis-completion.bash
+echo 'source ~/.anubis-completion.bash' >> ~/.bashrc
 ```
 
-For more details or additional examples, check each task’s documentation using
-`anubis --list` or review the individual docstrings.
+Start a new shell or source the generated file to activate it immediately.
 
-## Development Environment Setup
+## Kubernetes workflow
 
-### Requirements
-
-- [Python](https://www.python.org/downloads/) >= 3.10
-- [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) >= 0.7.0
-
-### Setup
-
-1. Create the virtual environment:
+From a compatible IaC repository:
 
 ```bash
-uv sync
+anubis install internal/local
+anubis stop
+anubis start
+anubis update
+anubis destroy --yes
 ```
 
-2. Verify the virtual environment was created correctly:
+`install` prepares the cluster and deploys the product. Use the individual
+commands when only one stage is needed. Advanced cluster operations are
+grouped under `anubis cluster`.
 
-```bash
-uv pip check
-uv tree
+An installation may be referenced by its logical name, its directory or its
+`installation.yaml` path. Anubis remembers the last explicit selection in the
+repository's ignored `.work/anubis/active-installation` file, so later commands
+may omit it. Passing another installation switches the active selection.
+`--repository PATH` is only needed when Anubis cannot discover the repository
+from the current directory.
+
+`stop` scales product processes to zero but keeps databases, Kafka, operators
+and volumes available. `start`, `deploy` or `update` resume the declared
+replicas. `destroy --yes` irreversibly removes the product and its Kubernetes
+data while preserving the cluster; `cluster destroy --yes` also removes a
+managed Kind or Terraform/libvirt cluster.
+
+`deploy` forces reconciliation of every release and is useful for an initial
+deployment or for correcting manual cluster drift. `update` is the routine
+maintenance operation: it shows the diff and applies only releases whose
+declared configuration changed.
+
+### Optional repository configuration
+
+A repository may contain an optional `anubis.yaml` with shared, non-secret
+configuration. For example, Bitwarden bindings map manifest paths to keys in
+the project selected at runtime:
+
+```yaml
+bitwarden:
+  bindings:
+    data.mongodb.username: MONGO_INITDB_ROOT_USERNAME
 ```
 
-3. Use the virtual environment:
+The file is not required. A complete installation manifest can be operated
+without it. User defaults such as AWS and CodeArtifact coordinates can also be
+stored in `~/.config/anubis/config.toml` through `anubis config init`.
 
-   With `uv` as package manager, you can use the environment in two ways:
+Set `BWS_ACCESS_TOKEN` or enter it at the hidden prompt. Tokens and passwords
+are never written to configuration or the repository. Local installation
+context is stored under the repository's ignored `.work/anubis/` directory.
 
-   - (**Recommended**) Run commands inside the virtual environment with `uv run <command>`:
+## Retained developer tooling
 
 ```bash
-uv run anubis
-uv run pytest -m unit
+anubis bitwarden install
+anubis bitwarden remove
+anubis aws install
+anubis aws configure-pip
+anubis aws configure-uv
+anubis aws token
+anubis check environment
 ```
 
-   - Activate the virtual environment:
+AWS settings come from command options, `ANUBIS_*` environment variables, the
+optional repository configuration or the user configuration. AWS credentials
+may come from the standard environment or the selected Bitwarden project.
+`anubis aws configure-uv` replaces `~/.config/uv/uv.toml`; `anubis aws reset`
+removes that Anubis-managed file.
+
+## Development
 
 ```bash
-source .venv/bin/activate
-```
-
-## Dependency Management
-
-Using `uv` as package manager, you can easily handle project dependencies.
-When a dependency is installed, it is stored in `uv.lock` to reproduce the environment elsewhere, and added to `pyproject.toml`.
-
-- Install or update a dependency:
-
-```bash
-uv add <package>
-```
-
-- Add development dependencies:
-
-```bash
-uv add --dev <package>
-```
-
-- Remove a dependency:
-
-```bash
-uv remove <package>
-uv remove --dev <package>
-```
-
-- Export dependencies to `requirements.txt`:
-
-```bash
-uv export --no-hashes -o requirements.txt
-```
-
-## Creating a New Package
-
-1. Build the package:
-
-```bash
+uv sync --locked --all-groups
+uv run ruff format --check .
+uv run ruff check .
+uv run pytest
+uv run anubis --help
 uv build
 ```
 
-2. A `dist` folder will be created with the package and its wheel.
-
-3. Install the package in another project’s virtual environment:
-
-```bash
-uv tool install --from dist/anubis_cli-{version}-py3-none-any.whl anubis-cli
-```
-
-## Contributing
-
-For a complete guide on how to contribute to the project, please review the [Contribution Guide](https://github.com/Steel-Develop/sbayt-internal-agreements/blob/master/CONTRIBUTING.md).
-
-### Reporting Issues
-
-If you believe you've found a defect in this project or its documentation, open an issue in [Jira](https://steeldevelop.atlassian.net/) so we can address it.
-
-If you're unsure whether it's a bug, feel free to discuss it in our forums or internal chat—someone will be happy to help.
-
-## Code of Conduct
-
-See the [Code of Conduct](https://github.com/Steel-Develop/sbayt-internal-agreements/blob/master/code-of-conduct.md).
-
-## License
-
-See the [LICENSE](./LICENSE) file.
+The package uses only public PyPI dependencies. Build artifacts must not
+contain deployment manifests, credentials or organization-specific runtime
+configuration.

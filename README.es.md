@@ -1,202 +1,120 @@
-<h1 align="center">𓁢 Anubis CLI</h1>
+# Anubis CLI
 
-<p align="center">
-    <em>Servicio Automatizado de Instalación de Red y Base de Usuarios</em>
-</p>
+Anubis ofrece una interfaz pequeña para preparar herramientas locales y operar
+infraestructura Kubernetes. Delega en las herramientas nativas y no sustituye
+a Terraform, Ansible, Helmfile ni kubectl.
 
-<p align="center">
-<a href="https://pypi.org/project/anubis-cli" target="_blank">
-    <img src="https://img.shields.io/pypi/v/anubis-cli?color=%2334D058&label=pypi%20package" alt="Versión del paquete">
-</a>
-<a href="https://pypi.org/project/anubis-cli" target="_blank">
-    <img src="https://img.shields.io/pypi/pyversions/anubis-cli.svg?color=%2334D058" alt="Versiones de Python soportadas">
-</a>
-</p>
+[Read in English](README.md)
 
----
+## Instalación
 
-📖 Leer en otros idiomas:
-- [English](./README.md)
-
----
-
-## Descripción
-
-Esta herramienta define y organiza un conjunto de tareas automatizadas para configurar y
-gestionar entornos de desarrollo/producción. Utiliza `invoke` para estructurar las tareas
-y `rich` para mejorar la experiencia en terminal.
-
-### Características principales
-
-- Instalación local y gestión de herramientas CLI esenciales (AWS CLI, Bitwarden CLI).
-- Configuración de repositorios privados (CodeArtifact) para `pip` y `uv`.
-- Automatización de servicios Docker (`create network`, `start`, `stop`, `clean`, `build`).
-- Verificación de configuraciones de seguridad y entorno local (Bitwarden, AWS ECR, etc.).
-
-## Instalación y Uso Básico
-
-### Requisitos
-
-- [Python](https://www.python.org/downloads/) >= 3.10
-- [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) >= 0.7.0
-- Un archivo de despliegue (local o global, por defecto: deployment.yml) para definir perfiles y credenciales.
-
-### Instalación global
-
-Para instalar la herramienta de forma global, puedes utilizar `uv`(**recomendado**) o `pipx`.
+Requiere Python 3.12 o superior:
 
 ```bash
-# Con uv (recomendado)
 uv tool install anubis-cli
-```
-
-```bash
-# Con pipx
+# o
 pipx install anubis-cli
 ```
 
-### Uso básico
+`anubis --help` muestra la interfaz disponible.
 
- 1. Ver tareas disponibles:
-
-```bash
-anubis help
-```
-
- 2. Verificar tu entorno local:
+Activa el autocompletado una vez después de instalar:
 
 ```bash
-anubis check.environment
-```
-
- 3. Iniciar servicios Docker con perfiles específicos:
-
-```bash
-anubis docker.up --profiles=infra,api --env=prod
-```
-
- 4. Configurar pip para CodeArtifact:
-
-```bash
-anubis aws.configure-pip
-```
-
-
-Configurar autocompletado para `anubis`:
-
-```bash
-# Para bash
-anubis --print-completion-script bash > ~/.anubis-completion.bash
-echo "source ~/.anubis-completion.bash" >> ~/.bashrc
-source ~/.bashrc
-
-# Para zsh
+# zsh
 anubis --print-completion-script zsh > ~/.anubis-completion.zsh
-echo "source ~/.anubis-completion.zsh" >> ~/.zshrc
-source ~/.zshrc
+echo 'source ~/.anubis-completion.zsh' >> ~/.zshrc
+
+# bash
+anubis --print-completion-script bash > ~/.anubis-completion.bash
+echo 'source ~/.anubis-completion.bash' >> ~/.bashrc
 ```
 
-Para más detalles o ejemplos adicionales, consulta la documentación de cada tarea
-usando el comando `anubis --list` o revisa los docstrings individuales.
+Abre una terminal nueva o carga el fichero generado para activarlo al momento.
 
-## Configuración del Entorno de Desarrollo
+## Flujo Kubernetes
 
-### Requisitos
-
-- [Python](https://www.python.org/downloads/) >= 3.10
-- [uv](https://github.com/astral-sh/uv?tab=readme-ov-file#installation) >= 0.7.0
-
-### Configuración
-
-1. Crea el entorno virtual:
+Desde un repositorio IaC compatible:
 
 ```bash
-uv sync
+anubis install internal/local
+anubis stop
+anubis start
+anubis update
+anubis destroy --yes
 ```
 
-2. Comprobar que el entorno virtual se ha creado correctamente:
+`install` prepara el clúster y despliega el producto. Los comandos individuales
+permiten ejecutar una sola etapa. Las operaciones avanzadas del clúster están
+agrupadas en `anubis cluster`.
 
-```bash
-uv pip check
-uv tree
+La instalación se puede indicar por nombre lógico, directorio o ruta al
+`installation.yaml`. Anubis recuerda la última selección explícita en el
+fichero ignorado `.work/anubis/active-installation` del repositorio, por lo que
+los comandos posteriores pueden omitirla. Indicar otra instalación cambia la
+selección activa. Solo hace falta `--repository RUTA` cuando Anubis no puede
+descubrir el repositorio desde el directorio actual.
+
+`stop` escala a cero los procesos del producto pero mantiene disponibles las
+bases de datos, Kafka, los operadores y los volúmenes. `start`, `deploy` o
+`update` recuperan las réplicas declaradas. `destroy --yes` elimina de forma
+irreversible el producto y sus datos Kubernetes, conservando el clúster;
+`cluster destroy --yes` elimina además un clúster Kind o Terraform/libvirt
+gestionado.
+
+`deploy` fuerza la reconciliación de todas las releases y resulta útil para un
+primer despliegue o para corregir cambios manuales en el clúster. `update` es la
+operación habitual de mantenimiento: muestra el diff y aplica únicamente las
+releases cuya configuración declarada ha cambiado.
+
+### Configuración opcional del repositorio
+
+Un repositorio puede incluir un `anubis.yaml` opcional con configuración
+compartida no secreta. Por ejemplo, los bindings de Bitwarden relacionan rutas
+del manifiesto con claves del proyecto seleccionado durante la ejecución:
+
+```yaml
+bitwarden:
+  bindings:
+    data.mongodb.username: MONGO_INITDB_ROOT_USERNAME
 ```
 
-3. Utiliza el entorno virtual:
+El fichero no es obligatorio: una instalación completa funciona sin él. Los
+valores personales de AWS y CodeArtifact también se pueden guardar mediante
+`anubis config init` en `~/.config/anubis/config.toml`.
 
-   Al utilizar `uv` como gestor de paquetes, podemos utilizar el entorno de varias maneras:
+El token se pasa con `BWS_ACCESS_TOKEN` o mediante el prompt oculto. Ni tokens
+ni contraseñas se escriben en la configuración o el repositorio. El contexto
+local queda en el directorio ignorado `.work/anubis/` del IaC.
 
-   - (**Recomendado**) Utilizar el comando `uv run <comando>` para ejecutar comandos dentro del entorno virtual:
+## Herramientas de desarrollo conservadas
 
 ```bash
-uv run anubis
-uv run pytest -m unit
+anubis bitwarden install
+anubis bitwarden remove
+anubis aws install
+anubis aws configure-pip
+anubis aws configure-uv
+anubis aws token
+anubis check environment
 ```
 
-   - Activar el entorno virtual:
+La configuración AWS procede de opciones, variables `ANUBIS_*`, configuración
+opcional del repositorio o configuración personal. Las credenciales se leen
+del entorno estándar o del proyecto Bitwarden seleccionado.
+`anubis aws configure-uv` reemplaza `~/.config/uv/uv.toml`; `anubis aws reset`
+elimina posteriormente ese fichero gestionado por Anubis.
+
+## Desarrollo
 
 ```bash
-   source .venv/bin/activate
-```
-
-## Manejo de Dependencias
-
-Al utilizar `uv` como gestor de paquetes, podemos manejar las dependencias de nuestro proyecto de manera sencilla. Cuando se instala una dependencia, se guarda en el archivo `uv.lock` para que se pueda reproducir el entorno en otro lugar, además de añadirlo al archivo `pyproject.toml` en su sección correspondiente.
-
-- Para instalar nuevas dependencias o actualizar una existente, simplemente ejecuta el siguiente comando:
-
-```bash
-uv add <package>
-```
-
-- Para añadir las dependencias de desarrollo, ejecuta el siguiente comando:
-
-```bash
-uv add --dev <package>
-```
-
-- Para eliminar una dependencia, ejecuta el siguiente comando:
-
-```bash
-uv remove <package>
-uv remove --dev <package>
-```
-
-- También se pueden exportar las dependencias a un archivo `requirements.txt`:
-
-```bash
-uv export --no-hashes -o requirements.txt
-```
-
-## Creación de un nuevo paquete
-
-1. Ejecuta el siguiente comando para crear un nuevo paquete:
-
-```bash
+uv sync --locked --all-groups
+uv run ruff format --check .
+uv run ruff check .
+uv run pytest
+uv run anubis --help
 uv build
 ```
 
-2. Se creará la carpeta `dist` con el paquete y su _wheel_.
-
-3. Instala el paquete en tu entorno virtual en otro proyecto:
-
-```bash
-uv tool install --from dist/anubis_cli-{version}-py3-none-any.whl anubis-cli
-```
-
-## Cómo Contribuir
-
-Para una guía completa sobre cómo contribuir al proyecto, revisa la [Contribution Guide](https://github.com/Steel-Develop/sbayt-internal-agreements/blob/master/CONTRIBUTING.md).
-
-### Reportar Incidencias
-
-If you believe you've found a defect in this project or its documentation, open an issue in [Jira](https://steeldevelop.atlassian.net/) so we can address it.
-
-If you're unsure whether it's a bug, feel free to discuss it in our forums or internal chat—someone will be happy to help.
-
-## Código de Conducta
-
-Consulta el [Código de Conducta](https://github.com/Steel-Develop/sbayt-internal-agreements/blob/master/code-of-conduct.md).
-
-## Licencia
-
-Consulta el archivo [LICENSE](./LICENSE).
+El paquete solo usa dependencias públicas de PyPI. Los artefactos no deben
+contener manifests de despliegue, credenciales ni configuración privada.
