@@ -1,139 +1,59 @@
 [build-system]
-# Specifies the build backend
-requires = ["pdm-backend"]
-build-backend = "pdm.backend"
+requires = ["hatchling==1.27.0"]
+build-backend = "hatchling.build"
 
 [project]
-# Project information
 name = "anubis-cli"
-version = "0.0.18"
-authors = [{ name = "Sbayt", email = "info@sbayt.ai" }]
-description = "Sbayt Anubis CLI"
+version = "1.0.0rc1"
+description = "Local environment and infrastructure operations CLI"
 readme = "README.md"
-license = {text = "MIT"}
-classifiers = [
-    "Development Status :: 5 - Production/Stable",
-    "License :: OSI Approved :: MIT License",
-    "Intended Audience :: Developers",
-    "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-]
-requires-python = ">=3.10"
-
-packages = [
-    { include = "anubis" }
-]
-
-# Dependencies
-# =============================================================================
+license = { text = "MIT" }
+requires-python = ">=3.12,<3.15"
 dependencies = [
-    # Core Libraries
-    "invoke>=2.2.0",
-    "jinja2>=3.1.6",
-    "pyyaml>=6.0.2",
-    "rich>=14.0.0",
-    "uv>=0.7.0",
-]
-
-# Optional Dependencies
-# =============================================================================
-#[project.optional-dependencies]
-#all = ["matplotlib"]
-
-# Development Dependencies
-# =============================================================================
-[tool.uv]
-dev-dependencies = [
-    # Tests
-    "pytest==8.3.2",
-    "pytest-asyncio==0.23.8",
-    "pytest-mock==3.14.0",
-    "pytest-docker==3.1.1",
-    "pytest-env==1.1.3",
-    "pytest-sugar==1.0.0",
-    "setuptools>=68.0.0",
-    # Source code quality
-    "pytest-cov<=6.0.0,>=5.0.0",
-    "mypy<2.0.0,>=1.8.0",
-    "pre-commit<4.0.0,>=3.7.1",
-    "flake8<8.0.0,>=7.1.0",
-    "Flake8-pyproject<2.0.0,>=1.2.3",
-    "isort<6.0.0,>=5.13.2",
-    "black<25.0.0,>=24.10.0",
+    "click==8.4.2",
+    "pyyaml==6.0.3",
+    "rich==15.0.0",
+    "tomli-w==1.2.0",
 ]
 
 [project.scripts]
-anubis = "anubis.main:program.run"
+anubis = "anubis.main:main"
 
-[project.urls]
-# URLs del proyecto
-Documentation = "https://github.com/Steel-Develop/sbayt-cli-anubis/tree/master#readme"
-Homepage = "https://github.com/Steel-Develop/sbayt-cli-anubis"
-Issues = "https://steeldevelop.atlassian.net/"
+[tool.hatch.build.targets.wheel]
+packages = ["anubis"]
 
-# Tools
-# =============================================================================
-[tool.pdm]
-packages = [
-    { include = "anubis", from = "." }
+[tool.hatch.build.targets.sdist]
+include = [
+    "/anubis",
+    "/tests",
+    "/LICENSE",
+    "/README.md",
+    "/README.es.md",
+    "/pyproject.toml",
+    "/uv.lock",
 ]
-distribution = true
 
-[tool.mypy]
-explicit_package_bases = true
-
-[tool.bandit]
-exclude_dirs = ["build", "dist", "tests", "scripts"]
-number = 4
-recursive = true
-targets = "anubis"
-
-[tool.black]
-line-length = 88
-fast = true
-
-[tool.coverage.run]
-parallel = true
-data_file = ".coverage"
-branch = true
-
-[tool.coverage.report]
-show_missing = true
-sort = "-Cover"
-fail_under = 50
-
-[tool.coverage.html]
-show_contexts = true
-
-[tool.flake8]
-max-line-length = 88
-max-complexity = 18
-select = "B,C,E,F,W,T4,B9"
-exclude = [
-    ".eggs",
-    ".git",
-    ".tox",
-    "nssm",
-    "obj",
-    "out",
-    "packages",
-    "pywin32",
-    "swagger_client",
+[dependency-groups]
+dev = [
+    "pytest==8.4.2",
+    "ruff==0.16.0",
 ]
-ignore = ["E203", "E266", "E501", "W503", "F403", "F401"]
-
-[tool.isort]
-profile = "black"
-known_first_party = "anubis"
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
 
 [tool.pytest.ini_options]
-addopts = "--cov anubis"
-pythonpath = ["anubis"]
-testpaths = "tests"
-junit_family = "xunit2"
-markers = ["integration: marks as integration test", "unit: marks as unit test"]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 99
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["B", "E4", "E7", "E9", "F", "I", "SIM", "UP"]
+
+[tool.uv]
+required-version = ">=0.11.0"
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+default = true

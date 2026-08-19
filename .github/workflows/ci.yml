@@ -1,193 +1,127 @@
-name: CI/CD Pipeline
+name: CI
 
 on:
+  pull_request:
   push:
-    branches:
-      - "master"
-    tags:
-      - "**"
-    pull_request: {}
+    branches: [master]
+    tags: ["**"]
+  workflow_dispatch:
 
 permissions:
   contents: read
-  id-token: write
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
-  COLUMNS: 150
+  UV_PYTHON: 3.12.3
 
 jobs:
-  fetch:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
   lint:
-    runs-on: ubuntu-latest
-    needs: fetch
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Check out repository
+        uses: actions/checkout@v6
         with:
-          python-version: '3.10'
+          persist-credentials: false
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "0.6.6"
+          version: 0.11.29
           enable-cache: true
-          cache-dependency-glob: |
-            pyproject.toml
-            uv.lock
-
-      - name: Switch uv index (CodeArtifact)
-        shell: bash
-        run: |
-          export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token \
-            --domain ${{ vars.AWS_DOMAIN }} \
-            --domain-owner ${{ vars.AWS_ACCOUNT_ID }} \
-            --region ${{ vars.AWS_REGION }} \
-            --query authorizationToken \
-            --output text)
-          echo "UV_DEFAULT_INDEX=https://aws:${CODEARTIFACT_AUTH_TOKEN}@sbayt-${{ vars.AWS_ACCOUNT_ID }}.d.codeartifact.${{ vars.AWS_REGION }}.amazonaws.com/pypi/python-sbayt-repository/simple/" >> $GITHUB_ENV
-
-      - name: Sync dependencies
-        run: uv sync --all-extras --dev
-
-      - name: Verify Installed Packages
-        run: uv pip check
-
-      - name: Run pre-commit hooks
-        run: |
-          uv run pre-commit run --all-files
-
-  test:
-    runs-on: ubuntu-latest
-    needs: lint
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "0.5.23"
-          enable-cache: true
-          cache-dependency-glob: |
-            pyproject.toml
-
-      - name: Switch uv index (CodeArtifact)
-        shell: bash
-        run: |
-          export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token \
-            --domain ${{ vars.AWS_DOMAIN }} \
-            --domain-owner ${{ vars.AWS_ACCOUNT_ID }} \
-            --region ${{ vars.AWS_REGION }} \
-            --query authorizationToken \
-            --output text)
-          echo "UV_DEFAULT_INDEX=https://aws:${CODEARTIFACT_AUTH_TOKEN}@sbayt-${{ vars.AWS_ACCOUNT_ID }}.d.codeartifact.${{ vars.AWS_REGION }}.amazonaws.com/pypi/python-sbayt-repository/simple/" >> $GITHUB_ENV
+          cache-dependency-glob: uv.lock
 
       - name: Install dependencies
-        run: uv sync --all-extras --dev
+        run: uv sync --locked --all-groups
 
-      - name: Run Unit Tests
-        run: |
-          uv run pytest -m unit || echo "No unit tests executed"
+      - name: Check dependencies
+        run: uv pip check
 
-      - name: Run Integration Tests
+      - name: Check formatting and lint
         run: |
-          uv run pytest -m integration || echo "No integration tests executed"
+          uv run ruff format --check .
+          uv run ruff check .
+
+  test:
+    needs: lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          version: 0.11.29
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install dependencies
+        run: uv sync --locked --all-groups
+
+      - name: Run tests
+        run: uv run pytest
 
   scan:
-    runs-on: ubuntu-latest
     needs: test
-    permissions: write-all
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Check out repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
-      - name: Run Trivy vulnerability scanner in repo mode
+      - name: Scan dependencies, configuration and secrets
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          scan-type: "fs"
+          scan-type: fs
           ignore-unfixed: true
-          format: "table"
-          scanners: "vuln,secret,config"
-          severity: "CRITICAL,HIGH"
+          format: table
+          scanners: vuln,secret,config
+          severity: CRITICAL,HIGH
 
-  publish:
-    if: startsWith(github.ref, 'refs/tags/')
+  build:
     needs: scan
-    runs-on: ubuntu-latest
-    environment: release
-
-    outputs:
-      lib-version: ${{ steps.check-tag.outputs.VERSION }}
-
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+      - name: Check out repository
+        uses: actions/checkout@v6
         with:
-          python-version: "3.10"
+          persist-credentials: false
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ vars.AWS_REGION }}
-
-      - name: Setup uv
-        uses: astral-sh/setup-uv@v3
-        with:
-          version: "0.5.23"
+          version: 0.11.29
           enable-cache: true
-          cache-dependency-glob: |
-            pyproject.toml
+          cache-dependency-glob: uv.lock
 
-      - name: Switch uv index (CodeArtifact)
-        shell: bash
+      - name: Build public artifacts
+        run: uv build --no-sources --out-dir "${RUNNER_TEMP}/dist"
+
+      - name: Inspect artifact contents
         run: |
-          export CODEARTIFACT_AUTH_TOKEN=$(aws codeartifact get-authorization-token \
-            --domain ${{ vars.AWS_DOMAIN }} \
-            --domain-owner ${{ vars.AWS_ACCOUNT_ID }} \
-            --region ${{ vars.AWS_REGION }} \
-            --query authorizationToken \
-            --output text)
-          echo "UV_DEFAULT_INDEX=https://aws:${CODEARTIFACT_AUTH_TOKEN}@sbayt-${{ vars.AWS_ACCOUNT_ID }}.d.codeartifact.${{ vars.AWS_REGION }}.amazonaws.com/pypi/python-sbayt-repository/simple/" >> $GITHUB_ENV
+          python - <<'PY'
+          import os
+          import tarfile
+          import zipfile
+          from pathlib import Path
 
-      - name: Check version
-        id: check-tag
-        uses: samuelcolvin/check-python-version@v4.1
-        with:
-          version_file_path: "pyproject.toml"
-
-      - name: Build and publish to PyPI
-        run: |
-          uv build --no-sources
-          uv publish
+          forbidden = {"deployment.yml", "anubis.yaml", ".env", ".pdm-build"}
+          archives = list((Path(os.environ["RUNNER_TEMP"]) / "dist").glob("anubis_cli-*"))
+          assert len(archives) == 2, archives
+          for archive in archives:
+              if archive.suffix == ".whl":
+                  names = zipfile.ZipFile(archive).namelist()
+              else:
+                  names = tarfile.open(archive).getnames()
+              assert not any(Path(name).name in forbidden for name in names), names
+          PY
