@@ -174,7 +174,11 @@ def destroy(
 @click.option("--project", help="Bitwarden project name or ID.")
 @click.option("--refresh", is_flag=True, help="Refresh the cached Bitwarden context.")
 @click.option("--inventory", type=click.Path(path_type=Path, dir_okay=False))
-@click.option("--ask-become-pass", is_flag=True)
+@click.option(
+    "--ask-become-pass/--no-ask-become-pass",
+    default=None,
+    help="Override whether Ansible prompts for the sudo password.",
+)
 @click.option("--base-image", type=click.Path(path_type=Path, dir_okay=False))
 @click.option("--ssh-public-key", type=click.Path(path_type=Path, dir_okay=False))
 @click.pass_obj
@@ -184,7 +188,7 @@ def install(
     project: str | None,
     refresh: bool,
     inventory: Path | None,
-    ask_become_pass: bool,
+    ask_become_pass: bool | None,
     base_image: Path | None,
     ssh_public_key: Path | None,
 ) -> None:

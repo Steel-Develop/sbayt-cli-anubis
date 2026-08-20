@@ -39,6 +39,18 @@ class Installation:
             raise AnubisError(f"installation.kubeContext is required: {self.path}")
         return value
 
+    @property
+    def ask_become_pass(self) -> bool:
+        provisioning = self.values.get("provisioning", {})
+        if not isinstance(provisioning, dict):
+            raise AnubisError(f"installation.provisioning must be a mapping: {self.path}")
+        value = provisioning.get("askBecomePass", False)
+        if not isinstance(value, bool):
+            raise AnubisError(
+                f"installation.provisioning.askBecomePass must be a boolean: {self.path}"
+            )
+        return value
+
 
 @dataclass(frozen=True)
 class Repository:

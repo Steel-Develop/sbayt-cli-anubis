@@ -38,7 +38,7 @@ def prepare_cluster(
     installation: Installation,
     *,
     inventory: Path | None = None,
-    ask_become_pass: bool = False,
+    ask_become_pass: bool | None = None,
     base_image: Path | None = None,
     ssh_public_key: Path | None = None,
 ) -> None:
@@ -56,7 +56,9 @@ def prepare_cluster(
         installation,
         application.runner,
         inventory=inventory,
-        ask_become_pass=ask_become_pass,
+        ask_become_pass=(
+            installation.ask_become_pass if ask_become_pass is None else ask_become_pass
+        ),
     )
 
 
@@ -90,7 +92,11 @@ def cluster_plan(
 @cluster_group.command("prepare")
 @click.argument("installation", required=False)
 @click.option("--inventory", type=click.Path(path_type=Path, dir_okay=False))
-@click.option("--ask-become-pass", is_flag=True)
+@click.option(
+    "--ask-become-pass/--no-ask-become-pass",
+    default=None,
+    help="Override whether Ansible prompts for the sudo password.",
+)
 @click.option("--base-image", type=click.Path(path_type=Path, dir_okay=False))
 @click.option("--ssh-public-key", type=click.Path(path_type=Path, dir_okay=False))
 @click.pass_obj
@@ -98,7 +104,7 @@ def cluster_prepare(
     application: Application,
     installation: str | None,
     inventory: Path | None,
-    ask_become_pass: bool,
+    ask_become_pass: bool | None,
     base_image: Path | None,
     ssh_public_key: Path | None,
 ) -> None:

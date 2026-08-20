@@ -72,3 +72,39 @@ def test_given_stale_active_installation_when_selected_then_replacement_is_requi
 
     with pytest.raises(AnubisError, match="no longer valid"):
         repository.select_installation(None)
+
+
+def test_given_no_provisioning_setting_when_read_then_become_prompt_defaults_to_false(
+    tmp_path: Path,
+) -> None:
+    source = _installation(tmp_path, "internal/local", "local")
+
+    installation = Repository(tmp_path, {}).installation(source)
+
+    assert installation.ask_become_pass is False
+
+
+def test_given_boolean_provisioning_setting_when_read_then_become_prompt_is_returned(
+    tmp_path: Path,
+) -> None:
+    source = _installation(tmp_path, "internal/cpd", "cpd")
+    values = yaml.safe_load(source.read_text(encoding="utf-8"))
+    values["provisioning"] = {"askBecomePass": True}
+    source.write_text(yaml.safe_dump(values), encoding="utf-8")
+
+    installation = Repository(tmp_path, {}).installation(source)
+
+    assert installation.ask_become_pass is True
+
+
+def test_given_invalid_provisioning_setting_when_read_then_configuration_is_rejected(
+    tmp_path: Path,
+) -> None:
+    source = _installation(tmp_path, "internal/cpd", "cpd")
+    values = yaml.safe_load(source.read_text(encoding="utf-8"))
+    values["provisioning"] = {"askBecomePass": "yes"}
+    source.write_text(yaml.safe_dump(values), encoding="utf-8")
+    installation = Repository(tmp_path, {}).installation(source)
+
+    with pytest.raises(AnubisError, match="askBecomePass must be a boolean"):
+        _ = installation.ask_become_pass

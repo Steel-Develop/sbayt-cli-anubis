@@ -55,6 +55,17 @@ def test_given_product_commands_when_help_is_requested_then_installation_is_opti
         assert "[INSTALLATION]" in result.output
 
 
+def test_given_cluster_setup_commands_when_help_is_requested_then_become_override_is_available() -> (
+    None
+):
+    runner = CliRunner()
+
+    for command in (["install"], ["cluster", "prepare"]):
+        result = runner.invoke(cli, [*command, "--help"])
+        assert result.exit_code == 0
+        assert "--ask-become-pass / --no-ask-become-pass" in result.output
+
+
 def test_given_cli_when_version_is_requested_then_version_is_available() -> None:
     result = CliRunner().invoke(cli, ["--version"])
 

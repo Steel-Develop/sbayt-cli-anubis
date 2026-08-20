@@ -55,6 +55,11 @@ los comandos posteriores pueden omitirla. Indicar otra instalación cambia la
 selección activa. Solo hace falta `--repository RUTA` cuando Anubis no puede
 descubrir el repositorio desde el directorio actual.
 
+Las instalaciones RKE2 pueden declarar `provisioning.askBecomePass: true` para
+pedir la contraseña de sudo de forma interactiva sin almacenarla. Las opciones
+`--ask-become-pass` y `--no-ask-become-pass` sobrescriben ese valor durante una
+ejecución concreta.
+
 `stop` escala a cero los procesos del producto pero mantiene disponibles las
 bases de datos, Kafka, los operadores y los volúmenes. `start`, `deploy` o
 `update` recuperan las réplicas declaradas. `destroy --yes` elimina de forma

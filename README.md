@@ -55,6 +55,10 @@ may omit it. Passing another installation switches the active selection.
 `--repository PATH` is only needed when Anubis cannot discover the repository
 from the current directory.
 
+RKE2 installations may set `provisioning.askBecomePass: true` to request the
+sudo password interactively without storing it. The command-line options
+`--ask-become-pass` and `--no-ask-become-pass` override that setting for one run.
+
 `stop` scales product processes to zero but keeps databases, Kafka, operators
 and volumes available. `start`, `deploy` or `update` resume the declared
 replicas. `destroy --yes` irreversibly removes the product and its Kubernetes
