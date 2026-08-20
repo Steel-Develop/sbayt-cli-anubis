@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "anubis-cli"
-version = "1.0.0rc1"
+version = "1.0.0"
 description = "Local environment and infrastructure operations CLI"
 readme = "README.md"
 license = { text = "MIT" }
