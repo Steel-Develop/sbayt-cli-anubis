@@ -18,6 +18,14 @@ pipx install anubis-cli
 
 Run `anubis --help` to inspect the available commands.
 
+On Linux x86_64 and arm64, each workflow installs or updates the user CLIs it
+needs under `~/.local/bin`. This includes Helm, Helmfile, kubectl, Kind,
+Terraform, helm-diff, uv, BWS and AWS CLI. Mise, curl and unzip are not runtime
+requirements.
+
+Python 3.12+, Docker, SSH, sudo, KVM and libvirt are system capabilities, so
+Anubis validates them when relevant but never installs or configures them.
+
 Enable shell completion once after installation:
 
 ```bash
@@ -73,18 +81,27 @@ declared configuration changed.
 ### Optional repository configuration
 
 A repository may contain an optional `anubis.yaml` with shared, non-secret
-configuration. For example, Bitwarden bindings map manifest paths to keys in
-the project selected at runtime:
+configuration. Exact IaC client versions and Bitwarden bindings can be kept
+together:
 
 ```yaml
+toolchain:
+  helm: 4.2.0
+  helmfile: 1.7.1
+  kubectl: 1.35.0
+  kind: 0.31.0
+  terraform: 1.13.5
+  helm-diff: 3.15.10
+
 bitwarden:
   bindings:
     data.mongodb.username: MONGO_INITDB_ROOT_USERNAME
 ```
 
-The file is not required. A complete installation manifest can be operated
-without it. User defaults such as AWS and CodeArtifact coordinates can also be
-stored in `~/.config/anubis/config.toml` through `anubis config init`.
+The file is not required. Anubis uses supported default tool versions and a
+complete installation manifest can be operated without it. User defaults such
+as AWS and CodeArtifact coordinates can also be stored in
+`~/.config/anubis/config.toml` through `anubis config init`.
 
 Set `BWS_ACCESS_TOKEN` or enter it at the hidden prompt. Tokens and passwords
 are never written to configuration or the repository. Local installation
@@ -99,8 +116,13 @@ anubis aws install
 anubis aws configure-pip
 anubis aws configure-uv
 anubis aws token
-anubis check environment
+anubis check environment [INSTALLATION]
 ```
+
+`check environment` is strictly read-only. Without an installation it checks
+the retained developer tooling; with one it reports the required tool, path,
+expected version, detected version and status for that deployment workflow.
+Normal operations automatically repair missing or incompatible managed CLIs.
 
 AWS settings come from command options, `ANUBIS_*` environment variables, the
 optional repository configuration or the user configuration. AWS credentials

@@ -17,6 +17,7 @@ from anubis.config import get_path, set_path
 from anubis.errors import AnubisError
 from anubis.process import Runner
 from anubis.repository import Installation, Repository
+from anubis.tools import install_bws
 
 
 def context_path(repository: Repository, installation: Installation) -> Path:
@@ -68,6 +69,7 @@ def initialize(
     token = access_token()
     if token is None:
         raise AnubisError("set BWS_ACCESS_TOKEN to resolve the Bitwarden context")
+    install_bws(runner)
     client = BitwardenClient(runner, token)
     project = select_project(client.projects(), project_selector)
     bindings = _bindings(configuration or repository.config)

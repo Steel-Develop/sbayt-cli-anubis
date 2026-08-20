@@ -11,12 +11,20 @@ from anubis.commands.cluster import prepare_cluster
 from anubis.errors import AnubisError
 from anubis.installations import resolved_manifest
 from anubis.kubernetes import Kubernetes, kubeconfig_path
+from anubis.tools import ensure_helm_diff, ensure_project_tools
 
 
 def _operation(application: Application, reference: str | None, kubeconfig: Path | None):
     repository = application.repository()
     installation = repository.select_installation(reference)
     assert installation is not None
+    ensure_project_tools(
+        application.runner,
+        repository.config,
+        "helm",
+        "helmfile",
+        "kubectl",
+    )
     return repository, installation, kubeconfig_path(repository, installation, kubeconfig)
 
 
@@ -31,6 +39,8 @@ def _converge(
     apply: bool = False,
 ) -> None:
     repository, selected, resolved_kubeconfig = _operation(application, installation, kubeconfig)
+    if apply:
+        ensure_helm_diff(application.runner, repository.config)
     with resolved_manifest(
         repository,
         selected,
@@ -196,6 +206,13 @@ def install(
     repository = application.repository()
     selected = repository.select_installation(installation)
     assert selected is not None
+    ensure_project_tools(
+        application.runner,
+        repository.config,
+        "helm",
+        "helmfile",
+        "kubectl",
+    )
     with resolved_manifest(
         repository,
         selected,

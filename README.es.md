@@ -18,6 +18,14 @@ pipx install anubis-cli
 
 `anubis --help` muestra la interfaz disponible.
 
+En Linux x86_64 y arm64, cada flujo instala o actualiza en `~/.local/bin` las
+CLI de usuario que necesita. Esto incluye Helm, Helmfile, kubectl, Kind,
+Terraform, helm-diff, uv, BWS y AWS CLI. Mise, curl y unzip no son requisitos
+de ejecución.
+
+Python 3.12+, Docker, SSH, sudo, KVM y libvirt son capacidades del sistema:
+Anubis las valida cuando corresponde, pero nunca las instala ni configura.
+
 Activa el autocompletado una vez después de instalar:
 
 ```bash
@@ -75,18 +83,27 @@ releases cuya configuración declarada ha cambiado.
 ### Configuración opcional del repositorio
 
 Un repositorio puede incluir un `anubis.yaml` opcional con configuración
-compartida no secreta. Por ejemplo, los bindings de Bitwarden relacionan rutas
-del manifiesto con claves del proyecto seleccionado durante la ejecución:
+compartida no secreta. Las versiones exactas de los clientes del IaC y los
+bindings de Bitwarden pueden mantenerse juntos:
 
 ```yaml
+toolchain:
+  helm: 4.2.0
+  helmfile: 1.7.1
+  kubectl: 1.35.0
+  kind: 0.31.0
+  terraform: 1.13.5
+  helm-diff: 3.15.10
+
 bitwarden:
   bindings:
     data.mongodb.username: MONGO_INITDB_ROOT_USERNAME
 ```
 
-El fichero no es obligatorio: una instalación completa funciona sin él. Los
-valores personales de AWS y CodeArtifact también se pueden guardar mediante
-`anubis config init` en `~/.config/anubis/config.toml`.
+El fichero no es obligatorio: Anubis usa versiones soportadas por defecto y
+una instalación completa funciona sin él. Los valores personales de AWS y
+CodeArtifact también se pueden guardar mediante `anubis config init` en
+`~/.config/anubis/config.toml`.
 
 El token se pasa con `BWS_ACCESS_TOKEN` o mediante el prompt oculto. Ni tokens
 ni contraseñas se escriben en la configuración o el repositorio. El contexto
@@ -101,8 +118,14 @@ anubis aws install
 anubis aws configure-pip
 anubis aws configure-uv
 anubis aws token
-anubis check environment
+anubis check environment [INSTALACION]
 ```
+
+`check environment` es estrictamente de solo lectura. Sin instalación revisa
+las herramientas de desarrollo conservadas; con una muestra herramienta,
+ruta, versión esperada, versión detectada y estado del flujo de despliegue.
+Las operaciones normales reparan automáticamente las CLI gestionadas que
+falten o tengan una versión incompatible.
 
 La configuración AWS procede de opciones, variables `ANUBIS_*`, configuración
 opcional del repositorio o configuración personal. Las credenciales se leen

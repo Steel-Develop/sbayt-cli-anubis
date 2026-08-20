@@ -14,6 +14,7 @@ from anubis.bitwarden import BitwardenClient, access_token, select_project
 from anubis.config import get_path
 from anubis.errors import AnubisError
 from anubis.process import Runner
+from anubis.tools import ensure_uv, install_aws, install_bws
 
 AWS_KEYS = ("AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_SESSION_TOKEN")
 UV_CONFIG = Path.home() / ".config" / "uv" / "uv.toml"
@@ -71,6 +72,7 @@ def credential_environment(
         raise AnubisError(
             "AWS credentials are unavailable; set AWS credentials or BWS_ACCESS_TOKEN"
         )
+    install_bws(runner)
     client = BitwardenClient(runner, token)
     project = select_project(client.projects(), project_selector)
     secrets = client.secrets(project["id"])
@@ -86,8 +88,7 @@ def codeartifact_token(
     *,
     project_selector: str | None = None,
 ) -> str:
-    if shutil.which("aws") is None:
-        raise AnubisError("aws is required; run 'anubis aws install'")
+    install_aws(runner)
     result = runner.run(
         [
             "aws",
@@ -123,6 +124,7 @@ def configure_pip(
 ) -> None:
     if shutil.which("pip") is None:
         raise AnubisError("pip is required")
+    install_aws(runner)
     runner.run(
         [
             "aws",
@@ -150,8 +152,7 @@ def configure_uv(
     *,
     project_selector: str | None = None,
 ) -> None:
-    if shutil.which("uv") is None:
-        raise AnubisError("uv is required")
+    ensure_uv(runner)
     token = codeartifact_token(runner, settings, project_selector=project_selector)
     url = (
         f"https://aws:{token}@{settings.domain}-{settings.account_id}.d.codeartifact."

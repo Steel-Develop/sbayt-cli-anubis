@@ -16,7 +16,7 @@ def test_given_existing_uv_config_when_configured_then_file_is_replaced(
     destination.write_text('[[index]]\nurl = "https://old.example/simple"\n', encoding="utf-8")
     destination.chmod(0o664)
     monkeypatch.setattr(aws, "UV_CONFIG", destination)
-    monkeypatch.setattr(aws.shutil, "which", lambda _executable: "/usr/bin/uv")
+    monkeypatch.setattr(aws, "ensure_uv", lambda _runner: None)
     monkeypatch.setattr(aws, "codeartifact_token", lambda *_args, **_kwargs: "new-token")
 
     configure_uv(

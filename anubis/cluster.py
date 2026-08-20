@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
-import os
 import shutil
 from dataclasses import dataclass
 from pathlib import Path
@@ -14,6 +12,7 @@ from anubis.errors import AnubisError
 from anubis.kubernetes import kubeconfig_path
 from anubis.process import Runner
 from anubis.repository import Installation, Repository
+from anubis.tools import download_verified, ensure_project_tools, ensure_uv, file_sha256
 
 
 def _require(*tools: str) -> None:
@@ -27,7 +26,8 @@ def _kind_name(installation: Installation) -> str:
 
 
 def kind_prepare(repository: Repository, installation: Installation, runner: Runner) -> Path:
-    _require("docker", "kind", "kubectl")
+    ensure_project_tools(runner, repository.config, "kind", "kubectl")
+    _require("docker")
     runner.run(["docker", "info"], capture=True)
     cluster = _kind_name(installation)
     work = repository.work / "kind" / cluster
@@ -78,7 +78,7 @@ def kind_check(repository: Repository, installation: Installation, runner: Runne
 
 
 def kind_destroy(repository: Repository, installation: Installation, runner: Runner) -> None:
-    _require("kind")
+    ensure_project_tools(runner, repository.config, "kind")
     cluster = _kind_name(installation)
     kubeconfig = repository.work / "kind" / cluster / "kubeconfig"
     runner.run(["kind", "delete", "cluster", "--name", cluster, "--kubeconfig", kubeconfig])
@@ -129,7 +129,7 @@ class TerraformLab:
         return {"TF_DATA_DIR": str(self.data)}
 
     def init(self) -> None:
-        _require("terraform")
+        ensure_project_tools(self.runner, self.repository.config, "terraform")
         if not self.inputs.is_file():
             raise AnubisError(f"Terraform inputs not found: {self.inputs}")
         self.work.mkdir(parents=True, exist_ok=True)
@@ -209,23 +209,10 @@ def ensure_base_image(repository: Repository, runner: Runner, destination: Path)
     )
     image = catalog["files"]["ubuntu-noble-amd64"]
     expected = image["sha256"]
-    if destination.is_file() and _sha256(destination) == expected:
+    if destination.is_file() and file_sha256(destination) == expected:
         return
     destination.parent.mkdir(parents=True, exist_ok=True)
-    temporary = destination.with_suffix(".part")
-    runner.run(["curl", "-fL", "--retry", "3", "-o", temporary, image["source"]])
-    if _sha256(temporary) != expected:
-        temporary.unlink(missing_ok=True)
-        raise AnubisError("downloaded Ubuntu image checksum does not match release catalog")
-    os.replace(temporary, destination)
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as stream:
-        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    download_verified(image["source"], destination, expected, "Ubuntu image")
 
 
 def rke2_inventory(
@@ -251,7 +238,8 @@ def rke2(
     check: bool = False,
     ask_become_pass: bool = False,
 ) -> None:
-    _require("uv", "ssh")
+    ensure_uv(runner)
+    _require("ssh")
     selected_inventory = rke2_inventory(repository, installation, inventory)
     collections = repository.root / ".cache/ansible/collections"
     collections.mkdir(parents=True, exist_ok=True)
