@@ -263,8 +263,13 @@ def _install_release(release: ToolRelease) -> None:
         _download(release.url, source)
         _download(release.checksum_url, checksums)
         _verify(source, _expected_checksum(checksums, release.filename), release.name)
-        binary = root / release.name
-        _extract(release, source, binary)
+        binary = (
+            source
+            if release.archive == "raw" and source.name == release.name
+            else root / release.name
+        )
+        if binary != source:
+            _extract(release, source, binary)
         _publish(binary, release.name)
 
 

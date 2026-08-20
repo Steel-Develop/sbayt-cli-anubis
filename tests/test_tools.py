@@ -113,6 +113,35 @@ def test_given_valid_tool_archive_when_installed_then_binary_is_published_atomic
     assert (destination / "helm").stat().st_mode & 0o111
 
 
+def test_given_direct_binary_when_installed_then_it_is_published_without_copying_itself(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    source = tmp_path / "kubectl"
+    source.write_bytes(b"executable")
+    checksum = hashlib.sha256(source.read_bytes()).hexdigest()
+    checksum_file = tmp_path / "checksum"
+    checksum_file.write_text(checksum, encoding="utf-8")
+    destination = tmp_path / "bin"
+    monkeypatch.setattr(tools, "LOCAL_BIN", destination)
+
+    def download(url: str, target: Path) -> None:
+        shutil.copyfile(checksum_file if url.endswith("sha256") else source, target)
+
+    monkeypatch.setattr(tools, "_download", download)
+    release = tools.ToolRelease(
+        "kubectl",
+        "1.35.0",
+        "https://example.com/kubectl",
+        "https://example.com/kubectl.sha256",
+        "kubectl",
+    )
+
+    tools._install_release(release)
+
+    assert (destination / "kubectl").read_bytes() == b"executable"
+
+
 def test_given_missing_diff_plugin_when_ensured_then_helm_four_compatible_plugin_is_installed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
