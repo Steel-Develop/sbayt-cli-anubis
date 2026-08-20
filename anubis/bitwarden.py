@@ -56,7 +56,7 @@ class BitwardenClient:
             raise AnubisError("bws returned invalid JSON") from error
 
     def projects(self) -> list[dict[str, str]]:
-        value = self._json(["list", "projects"])
+        value = self._json(["project", "list"])
         required = ("id", "organizationId", "name")
         if not isinstance(value, list) or any(
             not isinstance(project, dict)
@@ -67,7 +67,7 @@ class BitwardenClient:
         return value
 
     def secrets(self, project_id: str) -> dict[str, str]:
-        value = self._json(["list", "secrets", project_id])
+        value = self._json(["secret", "list", project_id])
         if not isinstance(value, list):
             raise AnubisError("bws returned an unexpected secret list")
         resolved: dict[str, str] = {}
