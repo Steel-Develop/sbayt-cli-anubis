@@ -14,7 +14,7 @@ class ExistingMongoRunner:
     def run(self, command, **kwargs):
         output = ""
         if "namespace" in command:
-            output = "product"
+            output = json.dumps({"items": [{"metadata": {"name": "product"}}]})
         if "mongodbcommunity/mongo" in command:
             output = "existing-user"
         return subprocess.CompletedProcess(command, 0, output, "")
@@ -60,8 +60,9 @@ class LifecycleRunner:
         if command[:3] == ["helm", "plugin", "list"]:
             output = "NAME VERSION TYPE APIVERSION PROVENANCE SOURCE\ndiff 3.13.0 cli/v1 legacy unknown unknown\n"
         elif command[0] == "kubectl":
-            if "jsonpath={.items[0].metadata.name}" in command:
-                output = self.namespace
+            if "namespace" in command and command[-1] == "json":
+                items = [] if self.namespace is None else [{"metadata": {"name": self.namespace}}]
+                output = json.dumps({"items": items})
             elif "persistentvolumeclaim" in command and "json" in command:
                 output = json.dumps({"items": self.claims})
             elif "persistentvolume" in command and command[-1] == "json":
@@ -154,6 +155,24 @@ def test_given_delete_policy_volumes_when_destroyed_then_namespace_precedes_plat
     assert product_destroy < namespace_delete < platform_destroy
     assert any(
         "--for=delete" in command and "persistentvolume/pv-mongo" in command
+        for command in runner.commands
+    )
+
+
+def test_given_product_namespace_already_absent_when_destroyed_then_platform_is_removed(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setattr("anubis.kubernetes.shutil.which", lambda _tool: "/bin/tool")
+    runner = LifecycleRunner(namespace=None)
+
+    _lifecycle(tmp_path, runner).destroy()
+
+    helmfile_commands = [command for command in runner.commands if command[0] == "helmfile"]
+    assert len(helmfile_commands) == 2
+    assert "product.yaml.gotmpl" in " ".join(helmfile_commands[0])
+    assert "platform.yaml.gotmpl" in " ".join(helmfile_commands[1])
+    assert not any(
+        command[0] == "kubectl" and "delete" in command and "namespace" in command
         for command in runner.commands
     )
 

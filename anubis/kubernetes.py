@@ -114,21 +114,33 @@ class Kubernetes:
         )
 
     def product_namespace(self, *, required: bool = True) -> str | None:
-        result = self._kubectl(
-            [
-                "get",
-                "namespace",
-                "-l",
-                "serquet.io/scope=product",
-                "-o",
-                "jsonpath={.items[0].metadata.name}",
-            ],
-            capture=True,
+        namespaces = self._json_items(
+            self._kubectl(
+                [
+                    "get",
+                    "namespace",
+                    "-l",
+                    "serquet.io/scope=product",
+                    "-o",
+                    "json",
+                ],
+                capture=True,
+            ).stdout,
+            "product namespaces",
         )
-        namespace = result.stdout.strip()
+        namespace = next(
+            (
+                name
+                for item in namespaces
+                if isinstance(metadata := item.get("metadata"), dict)
+                and isinstance(name := metadata.get("name"), str)
+                and name
+            ),
+            None,
+        )
         if not namespace and required:
             raise AnubisError("product namespace not found")
-        return namespace or None
+        return namespace
 
     def _scale_to_zero(self, namespace: str, resource: str, selector: str | None = None) -> None:
         arguments = ["-n", namespace, "get", resource]
