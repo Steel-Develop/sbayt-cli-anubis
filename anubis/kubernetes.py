@@ -113,20 +113,20 @@ class Kubernetes:
             sensitive=sensitive,
         )
 
-    def product_namespace(self, *, required: bool = True) -> str | None:
+    def namespace_for_scope(self, scope: str, *, required: bool = True) -> str | None:
         namespaces = self._json_items(
             self._kubectl(
                 [
                     "get",
                     "namespace",
                     "-l",
-                    "serquet.io/scope=product",
+                    f"serquet.io/scope={scope}",
                     "-o",
                     "json",
                 ],
                 capture=True,
             ).stdout,
-            "product namespaces",
+            f"{scope} namespaces",
         )
         namespace = next(
             (
@@ -139,8 +139,14 @@ class Kubernetes:
             None,
         )
         if not namespace and required:
-            raise AnubisError("product namespace not found")
+            raise AnubisError(f"{scope} namespace not found")
         return namespace
+
+    def product_namespace(self, *, required: bool = True) -> str | None:
+        return self.namespace_for_scope("product", required=required)
+
+    def observability_namespace(self, *, required: bool = True) -> str | None:
+        return self.namespace_for_scope("observability", required=required)
 
     def _scale_to_zero(self, namespace: str, resource: str, selector: str | None = None) -> None:
         arguments = ["-n", namespace, "get", resource]
@@ -162,17 +168,18 @@ class Kubernetes:
             "statefulset",
             selector="app.kubernetes.io/component=edge",
         )
-        self._kubectl(
-            [
-                "-n",
-                namespace,
-                "delete",
-                "gateway.gateway.networking.k8s.io",
-                "--all",
-                "--ignore-not-found=true",
-                "--wait=true",
-            ]
-        )
+        if not self.observability_namespace(required=False):
+            self._kubectl(
+                [
+                    "-n",
+                    namespace,
+                    "delete",
+                    "gateway.gateway.networking.k8s.io",
+                    "--all",
+                    "--ignore-not-found=true",
+                    "--wait=true",
+                ]
+            )
 
     def deploy(self, *, component: str | None = None, apply: bool = False) -> None:
         self._require("helm", "helmfile", "kubectl")
@@ -199,10 +206,19 @@ class Kubernetes:
 
     def destroy(self) -> None:
         self._require("helmfile", "kubectl")
-        namespace = self.product_namespace(required=False)
-        volumes = self._persistent_volumes(namespace) if namespace else []
+        namespaces = list(
+            dict.fromkeys(
+                namespace
+                for namespace in (
+                    self.product_namespace(required=False),
+                    self.observability_namespace(required=False),
+                )
+                if namespace
+            )
+        )
+        volumes = {namespace: self._persistent_volumes(namespace) for namespace in namespaces}
         self._helmfile(self.product_helmfile, "destroy")
-        if namespace:
+        for namespace in namespaces:
             self._kubectl(
                 [
                     "delete",
@@ -212,7 +228,7 @@ class Kubernetes:
                     "--timeout=20m",
                 ]
             )
-            for volume in volumes:
+            for volume in volumes[namespace]:
                 existing = self._kubectl(
                     ["get", "persistentvolume", volume, "-o", "name"],
                     capture=True,
