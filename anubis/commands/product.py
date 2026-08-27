@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 
 from anubis.application import Application
+from anubis.cluster import configure_kind_node
 from anubis.commands.cluster import prepare_cluster
 from anubis.errors import AnubisError
 from anubis.installations import resolved_manifest
@@ -39,6 +40,9 @@ def _converge(
     apply: bool = False,
 ) -> None:
     repository, selected, resolved_kubeconfig = _operation(application, installation, kubeconfig)
+    if selected.cluster_profile == "kind":
+        ensure_project_tools(application.runner, repository.config, "kind")
+        configure_kind_node(selected, application.runner)
     if apply:
         ensure_helm_diff(application.runner, repository.config)
     with resolved_manifest(

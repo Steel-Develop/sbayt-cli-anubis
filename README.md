@@ -103,6 +103,11 @@ complete installation manifest can be operated without it. User defaults such
 as AWS and CodeArtifact coordinates can also be stored in
 `~/.config/anubis/config.toml` through `anubis config init`.
 
+A repository may also provide `installations/schema.json`. When present,
+Anubis validates the original `installation.yaml` against that JSON Schema
+before resolving secrets or starting an operation. Repositories without a
+schema keep the existing behavior.
+
 Set `BWS_ACCESS_TOKEN` or enter it at the hidden prompt. Tokens and passwords
 are never written to configuration or the repository. Local installation
 context is stored under the repository's ignored `.work/anubis/` directory.

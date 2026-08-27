@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -20,6 +21,13 @@ def _installation(root: Path, reference: str, name: str) -> Path:
         ),
         encoding="utf-8",
     )
+    return destination
+
+
+def _schema(root: Path, schema: dict) -> Path:
+    destination = root / "installations" / "schema.json"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(schema), encoding="utf-8")
     return destination
 
 
@@ -108,3 +116,80 @@ def test_given_invalid_provisioning_setting_when_read_then_configuration_is_reje
 
     with pytest.raises(AnubisError, match="askBecomePass must be a boolean"):
         _ = installation.ask_become_pass
+
+
+def test_given_repository_schema_and_valid_manifest_when_loaded_then_it_is_accepted(
+    tmp_path: Path,
+) -> None:
+    source = _installation(tmp_path, "internal/local", "local")
+    _schema(
+        tmp_path,
+        {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "required": ["name"],
+            "properties": {"name": {"const": "local"}},
+        },
+    )
+
+    installation = Repository(tmp_path, {}).installation(source)
+
+    assert installation.name == "local"
+
+
+def test_given_repository_schema_and_invalid_manifest_when_loaded_then_path_is_reported(
+    tmp_path: Path,
+) -> None:
+    source = _installation(tmp_path, "internal/local", "local")
+    _schema(
+        tmp_path,
+        {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+                "capacity": {
+                    "type": "object",
+                    "properties": {"compute": {"type": "object"}},
+                    "required": ["compute"],
+                }
+            },
+            "required": ["capacity"],
+        },
+    )
+
+    with pytest.raises(AnubisError, match=r"<root>: 'capacity' is a required property"):
+        Repository(tmp_path, {}).installation(source)
+
+
+def test_given_malformed_repository_schema_when_loaded_then_it_is_rejected(
+    tmp_path: Path,
+) -> None:
+    source = _installation(tmp_path, "internal/local", "local")
+    schema = tmp_path / "installations" / "schema.json"
+    schema.write_text("{", encoding="utf-8")
+
+    with pytest.raises(AnubisError, match="cannot read installation schema"):
+        Repository(tmp_path, {}).installation(source)
+
+
+def test_given_invalid_repository_schema_when_loaded_then_it_is_rejected(
+    tmp_path: Path,
+) -> None:
+    source = _installation(tmp_path, "internal/local", "local")
+    _schema(tmp_path, {"type": 123})
+
+    with pytest.raises(AnubisError, match="invalid installation schema"):
+        Repository(tmp_path, {}).installation(source)
+
+
+def test_given_repository_without_schema_when_loaded_then_behavior_is_unchanged(
+    tmp_path: Path,
+) -> None:
+    source = _installation(tmp_path, "internal/local", "local")
+    values = yaml.safe_load(source.read_text(encoding="utf-8"))
+    values["repositorySpecificOption"] = True
+    source.write_text(yaml.safe_dump(values), encoding="utf-8")
+
+    installation = Repository(tmp_path, {}).installation(source)
+
+    assert installation.values["repositorySpecificOption"] is True

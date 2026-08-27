@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import yaml
+from jsonschema import Draft202012Validator
+from jsonschema.exceptions import SchemaError
 
 from anubis.config import load_repository_config
 from anubis.errors import AnubisError
@@ -82,6 +85,11 @@ class Repository:
     def active_installation_path(self) -> Path:
         return self.work / "anubis" / "active-installation"
 
+    @property
+    def installation_schema_path(self) -> Path | None:
+        source = self.root / "installations" / "schema.json"
+        return source if source.is_file() else None
+
     def select_installation(
         self,
         reference: str | Path | None,
@@ -149,22 +157,50 @@ class Repository:
         for candidate in candidates:
             source = candidate / "installation.yaml" if candidate.is_dir() else candidate
             if source.is_file():
-                return _load_installation(source.resolve())
+                return _load_installation(source.resolve(), self.installation_schema_path)
 
         pattern = f"**/{requested.name}/installation.yaml"
         matches = list((self.root / "installations").glob(pattern))
         if len(matches) == 1:
-            return _load_installation(matches[0].resolve())
+            return _load_installation(matches[0].resolve(), self.installation_schema_path)
         if len(matches) > 1:
             raise AnubisError(f"installation name is ambiguous: {reference}")
         raise AnubisError(f"installation not found: {reference}")
 
 
-def _load_installation(path: Path) -> Installation:
+def _load_installation(path: Path, schema_path: Path | None = None) -> Installation:
     try:
         values = yaml.safe_load(path.read_text(encoding="utf-8"))
     except (OSError, yaml.YAMLError) as error:
         raise AnubisError(f"cannot read installation: {path}: {error}") from error
     if not isinstance(values, dict):
         raise AnubisError(f"installation must be a YAML mapping: {path}")
+    if schema_path is not None:
+        _validate_installation(values, path, schema_path)
     return Installation(path=path, values=values)
+
+
+def _validate_installation(values: dict[str, Any], path: Path, schema_path: Path) -> None:
+    try:
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise AnubisError(f"cannot read installation schema: {schema_path}: {error}") from error
+
+    try:
+        Draft202012Validator.check_schema(schema)
+    except SchemaError as error:
+        raise AnubisError(
+            f"invalid installation schema: {schema_path}: {error.message}"
+        ) from error
+
+    validator = Draft202012Validator(schema)
+    errors = sorted(
+        validator.iter_errors(values),
+        key=lambda error: tuple(str(part) for part in error.absolute_path),
+    )
+    if not errors:
+        return
+
+    error = errors[0]
+    location = ".".join(str(part) for part in error.absolute_path) or "<root>"
+    raise AnubisError(f"installation does not match schema: {path}: {location}: {error.message}")

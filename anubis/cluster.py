@@ -25,6 +25,27 @@ def _kind_name(installation: Installation) -> str:
     return installation.kube_context.removeprefix("kind-")
 
 
+_KIND_NODE_SYSCTLS = {
+    "fs.inotify.max_user_instances": "8192",
+    "fs.inotify.max_user_watches": "1048576",
+}
+
+
+def configure_kind_node(installation: Installation, runner: Runner) -> None:
+    """Apply node-level limits required by cluster-wide log collection."""
+    cluster = _kind_name(installation)
+    nodes = runner.run(
+        ["kind", "get", "nodes", "--name", cluster], capture=True
+    ).stdout.splitlines()
+    if len(nodes) != 1:
+        raise AnubisError("the Kind development profile requires exactly one node")
+    for name, value in _KIND_NODE_SYSCTLS.items():
+        runner.run(
+            ["docker", "exec", nodes[0], "sysctl", "-w", f"{name}={value}"],
+            capture=True,
+        )
+
+
 def kind_prepare(repository: Repository, installation: Installation, runner: Runner) -> Path:
     ensure_project_tools(runner, repository.config, "kind", "kubectl")
     _require("docker")
@@ -51,6 +72,7 @@ def kind_prepare(repository: Repository, installation: Installation, runner: Run
             ]
         )
     runner.run(["kind", "export", "kubeconfig", "--name", cluster, "--kubeconfig", kubeconfig])
+    configure_kind_node(installation, runner)
     kind_check(repository, installation, runner)
     return kubeconfig
 

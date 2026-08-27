@@ -105,6 +105,11 @@ una instalación completa funciona sin él. Los valores personales de AWS y
 CodeArtifact también se pueden guardar mediante `anubis config init` en
 `~/.config/anubis/config.toml`.
 
+El repositorio también puede proporcionar `installations/schema.json`. Si
+existe, Anubis valida el `installation.yaml` original contra ese JSON Schema
+antes de resolver secretos o iniciar una operación. Los repositorios sin
+esquema conservan el comportamiento existente.
+
 El token se pasa con `BWS_ACCESS_TOKEN` o mediante el prompt oculto. Ni tokens
 ni contraseñas se escriben en la configuración o el repositorio. El contexto
 local queda en el directorio ignorado `.work/anubis/` del IaC.
