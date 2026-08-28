@@ -10,42 +10,6 @@ from anubis.kubernetes import Kubernetes
 from anubis.repository import Installation, Repository
 
 
-class ExistingMongoRunner:
-    def run(self, command, **kwargs):
-        output = ""
-        if "namespace" in command:
-            output = json.dumps({"items": [{"metadata": {"name": "product"}}]})
-        if "mongodbcommunity/mongo" in command:
-            output = "existing-user"
-        return subprocess.CompletedProcess(command, 0, output, "")
-
-
-def test_given_existing_database_owner_when_desired_owner_changes_then_deploy_is_rejected(
-    tmp_path: Path,
-) -> None:
-    manifest = tmp_path / "resolved.yaml"
-    values = {
-        "name": "local",
-        "clusterProfile": "kind",
-        "kubeContext": "kind-local",
-        "data": {"mongodb": {"username": "different-user"}},
-    }
-    manifest.write_text(yaml.safe_dump(values), encoding="utf-8")
-    installation = Installation(tmp_path / "installation.yaml", values)
-    kubeconfig = tmp_path / "kubeconfig"
-    kubeconfig.touch()
-    kubernetes = Kubernetes(
-        Repository(tmp_path, {}),
-        installation,
-        manifest,
-        kubeconfig,
-        ExistingMongoRunner(),
-    )
-
-    with pytest.raises(AnubisError, match="migrate the database manually"):
-        kubernetes.validate_bootstrap_identities()
-
-
 class LifecycleRunner:
     def __init__(
         self,

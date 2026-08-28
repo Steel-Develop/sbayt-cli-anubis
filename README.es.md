@@ -97,13 +97,17 @@ toolchain:
 
 bitwarden:
   bindings:
-    data.mongodb.username: MONGO_INITDB_ROOT_USERNAME
+    runtime.bootstrapUsers.mongodb: MONGO_INITDB_ROOT_USERNAME
 ```
 
 El fichero no es obligatorio: Anubis usa versiones soportadas por defecto y
 una instalación completa funciona sin él. Los valores personales de AWS y
 CodeArtifact también se pueden guardar mediante `anubis config init` en
 `~/.config/anubis/config.toml`.
+
+Las rutas de los bindings apuntan al manifiesto resuelto temporal. Un
+repositorio puede reservar un namespace interno como `runtime` sin exponerlo
+en el esquema público de instalación.
 
 El repositorio también puede proporcionar `installations/schema.json`. Si
 existe, Anubis valida el `installation.yaml` original contra ese JSON Schema

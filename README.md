@@ -95,13 +95,17 @@ toolchain:
 
 bitwarden:
   bindings:
-    data.mongodb.username: MONGO_INITDB_ROOT_USERNAME
+    runtime.bootstrapUsers.mongodb: MONGO_INITDB_ROOT_USERNAME
 ```
 
 The file is not required. Anubis uses supported default tool versions and a
 complete installation manifest can be operated without it. User defaults such
 as AWS and CodeArtifact coordinates can also be stored in
 `~/.config/anubis/config.toml` through `anubis config init`.
+
+Binding paths target the temporary resolved manifest. Repositories can reserve
+an internal namespace such as `runtime` without exposing it in the public
+installation schema.
 
 A repository may also provide `installations/schema.json`. When present,
 Anubis validates the original `installation.yaml` against that JSON Schema

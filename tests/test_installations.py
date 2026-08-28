@@ -36,13 +36,13 @@ def test_given_external_context_when_values_are_resolved_then_installation_is_no
     installation = Installation(source, yaml.safe_load(source.read_text()))
     context = {
         "project": {"id": "project", "organizationID": "organization"},
-        "values": {"data.mongodb.username": "database-user"},
+        "values": {"runtime.bootstrapUsers.mongodb": "database-user"},
     }
 
     result = resolved_values(installation, context)
 
     assert result["secrets"]["bitwarden"]["projectID"] == "project"
-    assert result["data"]["mongodb"]["username"] == "database-user"
+    assert result["runtime"]["bootstrapUsers"]["mongodb"] == "database-user"
     assert "bitwarden" not in yaml.safe_load(source.read_text())["secrets"]
 
 
@@ -89,10 +89,16 @@ def test_given_effective_configuration_when_context_is_checked_then_bindings_are
     assert needs_context(
         repository,
         installation,
-        {"bitwarden": {"bindings": {"data.mongodb.username": "MONGO_USER"}}},
+        {
+            "bitwarden": {
+                "bindings": {"runtime.bootstrapUsers.mongodb": "MONGO_USER"}
+            }
+        },
     )
 
-    installation.values["data"] = {"mongodb": {"username": "explicit-user"}}
+    installation.values["runtime"] = {
+        "bootstrapUsers": {"mongodb": "explicit-user"}
+    }
     installation.values["secrets"]["bitwarden"] = {
         "organizationID": "organization",
         "projectID": "project",
@@ -104,7 +110,7 @@ def test_given_effective_configuration_when_context_is_checked_then_bindings_are
     )
 
 
-def test_given_repository_bindings_when_values_are_resolved_then_legacy_values_are_replaced(
+def test_given_repository_bindings_when_values_are_resolved_then_existing_values_are_replaced(
     tmp_path: Path,
 ) -> None:
     installation = Installation(
@@ -113,7 +119,7 @@ def test_given_repository_bindings_when_values_are_resolved_then_legacy_values_a
             "name": "local",
             "clusterProfile": "kind",
             "kubeContext": "kind-local",
-            "data": {"mongodb": {"username": "legacy-user"}},
+            "runtime": {"bootstrapUsers": {"mongodb": "existing-user"}},
         },
     )
 
@@ -121,11 +127,11 @@ def test_given_repository_bindings_when_values_are_resolved_then_legacy_values_a
         installation,
         {
             "project": {"id": "new-project", "organizationID": "new-organization"},
-            "values": {"data.mongodb.username": "resolved-user"},
+            "values": {"runtime.bootstrapUsers.mongodb": "resolved-user"},
         },
     )
 
-    assert result["data"]["mongodb"]["username"] == "resolved-user"
+    assert result["runtime"]["bootstrapUsers"]["mongodb"] == "resolved-user"
     assert result["secrets"]["bitwarden"]["projectID"] == "new-project"
 
 
@@ -161,11 +167,17 @@ def test_given_resolved_context_when_initialized_then_private_context_is_written
         repository,
         installation,
         Runner(),
-        configuration={"bitwarden": {"bindings": {"data.mongodb.username": "MONGO_USER"}}},
+        configuration={
+            "bitwarden": {
+                "bindings": {"runtime.bootstrapUsers.mongodb": "MONGO_USER"}
+            }
+        },
     )
     destination = context_path(repository, installation)
 
-    assert result["values"] == {"data.mongodb.username": "database-user"}
+    assert result["values"] == {
+        "runtime.bootstrapUsers.mongodb": "database-user"
+    }
     assert "machine-token" not in destination.read_text(encoding="utf-8")
     assert stat.S_IMODE(destination.stat().st_mode) == 0o600
 
@@ -205,14 +217,18 @@ def test_given_missing_binding_when_context_is_refreshed_then_previous_context_i
             repository,
             installation,
             Runner(),
-            configuration={"bitwarden": {"bindings": {"data.mongodb.username": "MONGO_USER"}}},
+            configuration={
+                "bitwarden": {
+                    "bindings": {"runtime.bootstrapUsers.mongodb": "MONGO_USER"}
+                }
+            },
             refresh=True,
         )
 
     assert destination.read_text(encoding="utf-8") == "valid: context\n"
 
 
-def test_given_stale_context_when_manifest_is_resolved_then_explicit_refresh_is_required(
+def test_given_legacy_context_when_manifest_is_resolved_then_explicit_refresh_is_required(
     tmp_path: Path,
 ) -> None:
     source = tmp_path / "installation.yaml"
@@ -228,7 +244,12 @@ def test_given_stale_context_when_manifest_is_resolved_then_explicit_refresh_is_
     destination = context_path(repository, installation)
     destination.parent.mkdir(parents=True)
     destination.write_text(
-        yaml.safe_dump({"project": {"id": "project"}, "values": {}}),
+        yaml.safe_dump(
+            {
+                "project": {"id": "project"},
+                "values": {"data.mongodb.username": "legacy-user"},
+            }
+        ),
         encoding="utf-8",
     )
 
@@ -238,7 +259,11 @@ def test_given_stale_context_when_manifest_is_resolved_then_explicit_refresh_is_
             repository,
             installation,
             Runner(),
-            configuration={"bitwarden": {"bindings": {"data.mongodb.username": "MONGO_USER"}}},
+            configuration={
+                "bitwarden": {
+                    "bindings": {"runtime.bootstrapUsers.mongodb": "MONGO_USER"}
+                }
+            },
         ),
     ):
         pass
@@ -267,7 +292,7 @@ def test_given_existing_context_when_manifest_is_refreshed_then_new_context_is_a
                     "organizationID": "old-organization",
                     "name": "Old",
                 },
-                "values": {"data.mongodb.username": "old-user"},
+                "values": {"runtime.bootstrapUsers.mongodb": "old-user"},
             }
         ),
         encoding="utf-8",
@@ -291,10 +316,14 @@ def test_given_existing_context_when_manifest_is_refreshed_then_new_context_is_a
         repository,
         installation,
         Runner(),
-        configuration={"bitwarden": {"bindings": {"data.mongodb.username": "MONGO_USER"}}},
+        configuration={
+            "bitwarden": {
+                "bindings": {"runtime.bootstrapUsers.mongodb": "MONGO_USER"}
+            }
+        },
         refresh=True,
     ) as generated:
         resolved = yaml.safe_load(generated.read_text(encoding="utf-8"))
 
     assert resolved["secrets"]["bitwarden"]["projectID"] == "new-project"
-    assert resolved["data"]["mongodb"]["username"] == "new-user"
+    assert resolved["runtime"]["bootstrapUsers"]["mongodb"] == "new-user"
