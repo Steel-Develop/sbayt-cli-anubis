@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import shutil
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -12,13 +13,20 @@ from anubis.errors import AnubisError
 from anubis.kubernetes import kubeconfig_path
 from anubis.process import Runner
 from anubis.repository import Installation, Repository
-from anubis.tools import download_verified, ensure_project_tools, ensure_uv, file_sha256
+from anubis.tools import download_verified, ensure_project_tools, file_sha256
 
 
 def _require(*tools: str) -> None:
     missing = [tool for tool in tools if shutil.which(tool) is None]
     if missing:
         raise AnubisError(f"missing tools: {', '.join(missing)}")
+
+
+def _bundled_tool(name: str) -> Path:
+    executable = Path(sys.executable).with_name(name)
+    if not executable.is_file():
+        raise AnubisError(f"Anubis installation does not provide {name}; reinstall anubis-cli")
+    return executable
 
 
 def _kind_name(installation: Installation) -> str:
@@ -260,12 +268,10 @@ def rke2(
     check: bool = False,
     ask_become_pass: bool = False,
 ) -> None:
-    ensure_uv(runner)
     _require("ssh")
     selected_inventory = rke2_inventory(repository, installation, inventory)
     collections = repository.root / ".cache/ansible/collections"
     collections.mkdir(parents=True, exist_ok=True)
-    runner.run(["uv", "sync", "--locked", "--all-groups"], cwd=repository.root)
     environment: dict[str, str] = {
         "ANSIBLE_CONFIG": str(repository.root / "ansible/ansible.cfg"),
         "ANSIBLE_COLLECTIONS_PATH": str(collections),
@@ -281,9 +287,7 @@ def rke2(
         )
     runner.run(
         [
-            "uv",
-            "run",
-            "ansible-galaxy",
+            _bundled_tool("ansible-galaxy"),
             "collection",
             "install",
             "-r",
@@ -295,9 +299,7 @@ def rke2(
         env=environment,
     )
     command = [
-        "uv",
-        "run",
-        "ansible-playbook",
+        _bundled_tool("ansible-playbook"),
         "-i",
         selected_inventory,
         "ansible/playbooks/rke2.yml",

@@ -20,11 +20,12 @@ pipx install anubis-cli
 
 En Linux x86_64 y arm64, cada flujo instala o actualiza en `~/.local/bin` las
 CLI de usuario que necesita. Esto incluye Helm, Helmfile, kubectl, Kind,
-Terraform, helm-diff, uv, BWS y AWS CLI. Mise, curl y unzip no son requisitos
-de ejecución.
+Terraform, helm-diff, uv, BWS y AWS CLI.
 
 Python 3.12+, Docker, SSH, sudo, KVM y libvirt son capacidades del sistema:
 Anubis las valida cuando corresponde, pero nunca las instala ni configura.
+Ansible Core se instala con Anubis; los repositorios IaC compatibles aportan
+sus playbooks, roles y requisitos de colecciones.
 
 Activa el autocompletado una vez después de instalar:
 
@@ -88,12 +89,12 @@ bindings de Bitwarden pueden mantenerse juntos:
 
 ```yaml
 toolchain:
-  helm: 4.2.0
-  helmfile: 1.7.1
-  kubectl: 1.35.0
-  kind: 0.31.0
-  terraform: 1.13.5
-  helm-diff: 3.15.10
+  helm: 4.2.4
+  helmfile: 1.7.4
+  kubectl: 1.36.4
+  kind: 0.33.0
+  terraform: 1.16.1
+  helm-diff: 3.15.12
 
 bitwarden:
   bindings:

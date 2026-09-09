@@ -143,16 +143,6 @@ def check_environment(application: Application, installation: str | None) -> Non
                 docker = ToolStatus("docker", "daemon ready", docker.path, "unavailable", False)
             statuses.append(docker)
         else:
-            uv_version, uv_path = tool_version("uv", application.runner)
-            statuses.append(
-                ToolStatus(
-                    "uv",
-                    ">=0.11",
-                    uv_path,
-                    uv_version,
-                    bool(uv_version and version_tuple(uv_version) >= UV_MINIMUM_VERSION),
-                )
-            )
             statuses.append(_external_status("ssh"))
             if _uses_local_connection(selected):
                 statuses.append(_external_status("sudo"))

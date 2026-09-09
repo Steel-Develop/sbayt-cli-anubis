@@ -54,8 +54,8 @@ def test_given_wrong_tool_version_when_ensured_then_declared_release_is_installe
 ) -> None:
     states = iter(
         [
-            tools.ToolStatus("helm", "4.2.0", Path("/usr/bin/helm"), "3.0.0", False),
-            tools.ToolStatus("helm", "4.2.0", tools.LOCAL_BIN / "helm", "4.2.0", True),
+            tools.ToolStatus("helm", "4.2.4", Path("/usr/bin/helm"), "3.0.0", False),
+            tools.ToolStatus("helm", "4.2.4", tools.LOCAL_BIN / "helm", "4.2.4", True),
         ]
     )
     installed: list[tools.ToolRelease] = []
@@ -65,7 +65,7 @@ def test_given_wrong_tool_version_when_ensured_then_declared_release_is_installe
 
     tools.ensure_project_tools(ToolRunner(), None, "helm")  # type: ignore[arg-type]
 
-    assert [(release.name, release.version) for release in installed] == [("helm", "4.2.0")]
+    assert [(release.name, release.version) for release in installed] == [("helm", "4.2.4")]
 
 
 def test_given_corrupt_tool_download_when_verified_then_installation_is_rejected(
@@ -131,7 +131,7 @@ def test_given_direct_binary_when_installed_then_it_is_published_without_copying
     monkeypatch.setattr(tools, "_download", download)
     release = tools.ToolRelease(
         "kubectl",
-        "1.35.0",
+        "1.36.4",
         "https://example.com/kubectl",
         "https://example.com/kubectl.sha256",
         "kubectl",
@@ -146,9 +146,9 @@ def test_given_missing_diff_plugin_when_ensured_then_helm_four_compatible_plugin
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     runner = ToolRunner()
-    versions = iter([None, "3.15.10"])
+    versions = iter([None, "3.15.12"])
     monkeypatch.setattr(tools, "_helm_diff_version", lambda _runner: next(versions))
-    monkeypatch.setattr(tools, "tool_version", lambda *_args: ("4.2.0", Path("/bin/helm")))
+    monkeypatch.setattr(tools, "tool_version", lambda *_args: ("4.2.4", Path("/bin/helm")))
 
     tools.ensure_helm_diff(runner)  # type: ignore[arg-type]
 
@@ -158,7 +158,7 @@ def test_given_missing_diff_plugin_when_ensured_then_helm_four_compatible_plugin
         "install",
         "https://github.com/databus23/helm-diff",
         "--version",
-        "v3.15.10",
+        "v3.15.12",
         "--verify=false",
     ]
 

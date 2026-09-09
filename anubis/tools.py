@@ -22,12 +22,12 @@ from anubis.errors import AnubisError
 from anubis.process import Runner
 
 DEFAULT_TOOLCHAIN = {
-    "helm": "4.2.0",
-    "helmfile": "1.7.1",
-    "kubectl": "1.35.0",
-    "kind": "0.31.0",
-    "terraform": "1.13.5",
-    "helm-diff": "3.15.10",
+    "helm": "4.2.4",
+    "helmfile": "1.7.4",
+    "kubectl": "1.36.4",
+    "kind": "0.33.0",
+    "terraform": "1.16.1",
+    "helm-diff": "3.15.12",
 }
 BWS_VERSION = "1.0.0"
 UV_INSTALL_VERSION = "0.11.29"

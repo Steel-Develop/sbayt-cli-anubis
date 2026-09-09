@@ -89,16 +89,10 @@ def test_given_effective_configuration_when_context_is_checked_then_bindings_are
     assert needs_context(
         repository,
         installation,
-        {
-            "bitwarden": {
-                "bindings": {"runtime.bootstrapUsers.mongodb": "MONGO_USER"}
-            }
-        },
+        {"bitwarden": {"bindings": {"runtime.bootstrapUsers.mongodb": "MONGO_USER"}}},
     )
 
-    installation.values["runtime"] = {
-        "bootstrapUsers": {"mongodb": "explicit-user"}
-    }
+    installation.values["runtime"] = {"bootstrapUsers": {"mongodb": "explicit-user"}}
     installation.values["secrets"]["bitwarden"] = {
         "organizationID": "organization",
         "projectID": "project",
@@ -168,16 +162,12 @@ def test_given_resolved_context_when_initialized_then_private_context_is_written
         installation,
         Runner(),
         configuration={
-            "bitwarden": {
-                "bindings": {"runtime.bootstrapUsers.mongodb": "MONGO_USER"}
-            }
+            "bitwarden": {"bindings": {"runtime.bootstrapUsers.mongodb": "MONGO_USER"}}
         },
     )
     destination = context_path(repository, installation)
 
-    assert result["values"] == {
-        "runtime.bootstrapUsers.mongodb": "database-user"
-    }
+    assert result["values"] == {"runtime.bootstrapUsers.mongodb": "database-user"}
     assert "machine-token" not in destination.read_text(encoding="utf-8")
     assert stat.S_IMODE(destination.stat().st_mode) == 0o600
 
@@ -218,9 +208,7 @@ def test_given_missing_binding_when_context_is_refreshed_then_previous_context_i
             installation,
             Runner(),
             configuration={
-                "bitwarden": {
-                    "bindings": {"runtime.bootstrapUsers.mongodb": "MONGO_USER"}
-                }
+                "bitwarden": {"bindings": {"runtime.bootstrapUsers.mongodb": "MONGO_USER"}}
             },
             refresh=True,
         )
@@ -260,9 +248,7 @@ def test_given_legacy_context_when_manifest_is_resolved_then_explicit_refresh_is
             installation,
             Runner(),
             configuration={
-                "bitwarden": {
-                    "bindings": {"runtime.bootstrapUsers.mongodb": "MONGO_USER"}
-                }
+                "bitwarden": {"bindings": {"runtime.bootstrapUsers.mongodb": "MONGO_USER"}}
             },
         ),
     ):
@@ -317,9 +303,7 @@ def test_given_existing_context_when_manifest_is_refreshed_then_new_context_is_a
         installation,
         Runner(),
         configuration={
-            "bitwarden": {
-                "bindings": {"runtime.bootstrapUsers.mongodb": "MONGO_USER"}
-            }
+            "bitwarden": {"bindings": {"runtime.bootstrapUsers.mongodb": "MONGO_USER"}}
         },
         refresh=True,
     ) as generated:

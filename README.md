@@ -20,11 +20,12 @@ Run `anubis --help` to inspect the available commands.
 
 On Linux x86_64 and arm64, each workflow installs or updates the user CLIs it
 needs under `~/.local/bin`. This includes Helm, Helmfile, kubectl, Kind,
-Terraform, helm-diff, uv, BWS and AWS CLI. Mise, curl and unzip are not runtime
-requirements.
+Terraform, helm-diff, uv, BWS and AWS CLI.
 
 Python 3.12+, Docker, SSH, sudo, KVM and libvirt are system capabilities, so
 Anubis validates them when relevant but never installs or configures them.
+Ansible Core is installed with Anubis; compatible IaC repositories provide
+their playbooks, roles and collection requirements.
 
 Enable shell completion once after installation:
 
@@ -86,12 +87,12 @@ together:
 
 ```yaml
 toolchain:
-  helm: 4.2.0
-  helmfile: 1.7.1
-  kubectl: 1.35.0
-  kind: 0.31.0
-  terraform: 1.13.5
-  helm-diff: 3.15.10
+  helm: 4.2.4
+  helmfile: 1.7.4
+  kubectl: 1.36.4
+  kind: 0.33.0
+  terraform: 1.16.1
+  helm-diff: 3.15.12
 
 bitwarden:
   bindings:
