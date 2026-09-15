@@ -223,6 +223,7 @@ class TerraformLab:
             ],
             env=self.environment,
         )
+        self.known_hosts.unlink(missing_ok=True)
 
 
 def default_base_image(repository: Repository) -> Path:
